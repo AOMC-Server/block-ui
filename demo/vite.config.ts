@@ -7,6 +7,7 @@ const root = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
 	root,
+	base: process.env.PAGES_BASE ?? "/",
 	plugins: [
 		preact(),
 		{
