@@ -1,6 +1,6 @@
 /*
  * Reset, document defaults, typography and small utility classes. Nothing here positions the
- * app: an app shell decides whether the body scrolls (blockmap sets overflow: hidden itself).
+ * app: the app shell decides whether the body scrolls (it sets `overflow: hidden` if it should not).
  */
 * {
 	box-sizing: border-box;

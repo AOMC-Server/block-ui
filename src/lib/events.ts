@@ -83,10 +83,30 @@ export type StreamOptions = {
 
 const DEFAULT_POLL_MS = 30_000;
 
+/** The envelope in a frame of the stream, or null when the frame is not one. */
+function parse<M extends EventMap>(raw: unknown): Envelope<M> | null {
+	if (typeof raw !== "string") return null;
+	try {
+		const value: unknown = JSON.parse(raw);
+		return typeof value === "object" &&
+			value !== null &&
+			typeof (value as { topic?: unknown }).topic === "string"
+			? (value as Envelope<M>)
+			: null;
+	} catch {
+		return null;
+	}
+}
+
 export function createEventStream<M extends EventMap = EventMap>(
 	opts: StreamOptions = {},
 ) {
-	type Sub = Subscription<M, Topic<M>>;
+	/** One call of `subscribe`; the same subscription object may be passed to several calls. */
+	type Sub = {
+		sub: Subscription<M, Topic<M>>;
+		/** Has been given an event, so a late snapshot that repeats is news only to those that have not. */
+		seen: boolean;
+	};
 	const base = opts.url ?? "/api/events";
 	const open = opts.open ?? ((url: string) => new EventSource(url));
 	const batchMs = opts.batchMs ?? 30;
@@ -96,9 +116,7 @@ export function createEventStream<M extends EventMap = EventMap>(
 
 	const subs = new Map<string, Set<Sub>>();
 	/** The last event delivered per topic, to tell a repeated snapshot apart. */
-	const last = new Map<string, { seq: string; json: string }>();
-	/** Subscribers that have been given an event, so a late one still gets a snapshot that repeats. */
-	const seen = new WeakSet<object>();
+	const last = new Map<string, { seq: string; data: unknown }>();
 	const statusListeners = new Set<(status: StreamStatus) => void>();
 	let source: Source | null = null;
 	/** The topics the open stream was asked for. */
@@ -120,11 +138,12 @@ export function createEventStream<M extends EventMap = EventMap>(
 		for (const timer of pollTimers.values()) clearInterval(timer);
 		pollTimers = new Map();
 	};
-	const startPolling = (sub: Sub) => {
-		if (!sub.poll || pollTimers.has(sub)) return;
+	const startPolling = (entry: Sub) => {
+		const { sub } = entry;
+		if (!sub.poll || pollTimers.has(entry)) return;
 		sub.poll();
 		pollTimers.set(
-			sub,
+			entry,
 			setInterval(() => sub.poll?.(), sub.pollMs ?? DEFAULT_POLL_MS),
 		);
 	};
@@ -159,6 +178,9 @@ export function createEventStream<M extends EventMap = EventMap>(
 		}, silenceMs);
 		s.onmessage = (e: MessageEvent) => {
 			if (source !== s) return;
+			const envelope = parse<M>(e.data);
+			// Not something this protocol sends (a proxy's error page, say): not a sign of life.
+			if (!envelope) return;
 			clearTimeout(silenceTimer);
 			if (!healthy) {
 				healthy = true;
@@ -167,7 +189,7 @@ export function createEventStream<M extends EventMap = EventMap>(
 				stopPolling();
 				emitStatus("live");
 			}
-			receive(JSON.parse(e.data) as Envelope<M>);
+			receive(envelope);
 		};
 		s.onerror = () => {
 			if (source === s) fail();
@@ -190,33 +212,37 @@ export function createEventStream<M extends EventMap = EventMap>(
 		last.delete(topic);
 		// The stream no longer carries it, so following it again needs a new connection.
 		streaming.delete(topic);
-		for (const sub of set ?? []) {
-			clearInterval(pollTimers.get(sub));
-			pollTimers.delete(sub);
+		for (const entry of set ?? []) {
+			clearInterval(pollTimers.get(entry));
+			pollTimers.delete(entry);
 		}
 		return set;
 	};
 
 	const receive = (envelope: Envelope<M>) => {
 		if ("error" in envelope) {
-			for (const sub of forget(envelope.topic) ?? [])
-				sub.onError?.(envelope.error);
+			for (const entry of forget(envelope.topic) ?? [])
+				entry.sub.onError?.(envelope.error);
 			return;
 		}
 		const set = subs.get(envelope.topic);
 		// Nobody follows it any more (the stream may still carry it until the next connection).
 		if (!set) return;
-		const json = JSON.stringify(envelope.data);
 		const prev = last.get(envelope.topic);
+		// Only a snapshot with the seq already seen can be a repeat, so only then compare.
 		const repeat =
-			envelope.snapshot && prev?.seq === envelope.seq && prev.json === json;
+			envelope.snapshot &&
+			prev?.seq === envelope.seq &&
+			JSON.stringify(prev.data) === JSON.stringify(envelope.data);
 		// A repeated snapshot is only news to a subscriber that joined after the original.
-		const targets = [...set].filter((sub) => !repeat || !seen.has(sub));
-		last.set(envelope.topic, { seq: envelope.seq, json });
+		const targets = [...set].filter((entry) => !repeat || !entry.seen);
+		last.set(envelope.topic, { seq: envelope.seq, data: envelope.data });
 		if (envelope.final) forget(envelope.topic);
-		for (const sub of targets) {
-			seen.add(sub);
-			sub.onEvent(envelope.data as never, { snapshot: envelope.snapshot });
+		for (const entry of targets) {
+			entry.seen = true;
+			entry.sub.onEvent(envelope.data as never, {
+				snapshot: envelope.snapshot,
+			});
 		}
 	};
 
@@ -231,26 +257,31 @@ export function createEventStream<M extends EventMap = EventMap>(
 			topic: T,
 			subscription: Subscription<M, T>,
 		): () => void {
-			const sub = subscription as unknown as Sub;
+			const entry: Sub = {
+				sub: subscription as unknown as Sub["sub"],
+				seen: false,
+			};
 			const set = subs.get(topic) ?? new Set<Sub>();
 			subs.set(topic, set);
-			set.add(sub);
+			set.add(entry);
 			const known = last.get(topic);
 			if (streaming.has(topic) && healthy && known) {
 				// Already streaming: the new subscriber starts from the last event.
 				queueMicrotask(() => {
-					if (!set.has(sub)) return;
-					seen.add(sub);
-					sub.onEvent(JSON.parse(known.json), { snapshot: true });
+					if (!set.has(entry)) return;
+					entry.seen = true;
+					entry.sub.onEvent(structuredClone(known.data) as never, {
+						snapshot: true,
+					});
 				});
 			} else if (!streaming.has(topic)) {
 				schedule();
 			}
-			if (isDown) startPolling(sub);
+			if (isDown) startPolling(entry);
 			return () => {
-				set.delete(sub);
-				clearInterval(pollTimers.get(sub));
-				pollTimers.delete(sub);
+				set.delete(entry);
+				clearInterval(pollTimers.get(entry));
+				pollTimers.delete(entry);
 				// A topic that ended may have been followed again since, with a set of its own.
 				if (set.size > 0 || subs.get(topic) !== set) return;
 				subs.delete(topic);
@@ -285,15 +316,3 @@ export function createEventStream<M extends EventMap = EventMap>(
 export type EventStream<M extends EventMap = EventMap> = ReturnType<
 	typeof createEventStream<M>
 >;
-
-/**
- * An untyped stream on the default url, for apps that do not need their own. Apps with an event
- * map create theirs with `createEventStream<Events>()` and export its `subscribe`/`onStatus`.
- */
-export const events = createEventStream();
-
-/** Follows a topic on the shared stream. Returns a function that stops following it. */
-export const subscribe = events.subscribe;
-
-/** Calls `fn` whenever the shared stream becomes live or goes down. */
-export const onConnection = events.onStatus;

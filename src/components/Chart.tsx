@@ -15,7 +15,7 @@ const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 
 /** A round number at or above `max`, so the axis ends on a clean value. */
-export function niceMax(max: number): number {
+function niceMax(max: number): number {
 	if (max <= 0) return 1;
 	const pow = 10 ** Math.floor(Math.log10(max));
 	for (const step of [1, 2, 2.5, 5, 10])
@@ -45,6 +45,8 @@ export function Chart(props: {
 	formatTip?: (x: number) => string;
 	/** Extra line in the tooltip for the point at this index. */
 	note?: (index: number) => string | null;
+	/** Accessible name of the chart (what it shows). Default "Chart". */
+	ariaLabel?: string;
 }) {
 	const { kind, xs, series, formatY, formatX } = props;
 	const [hover, setHover] = useState<number | null>(null);
@@ -53,11 +55,12 @@ export function Chart(props: {
 
 	const stacked = kind === "bars";
 	const totals = xs.map((_, i) =>
-		stacked
-			? series.reduce((sum, s) => sum + (s.values[i] ?? 0), 0)
-			: Math.max(...series.map((s) => s.values[i] ?? 0)),
+		series.reduce((acc, s) => {
+			const v = s.values[i] ?? 0;
+			return stacked ? acc + v : Math.max(acc, v);
+		}, 0),
 	);
-	const top = niceMax(Math.max(...totals));
+	const top = niceMax(totals.reduce((max, t) => Math.max(max, t), 0));
 	const y = (v: number) => PAD.top + PLOT_H * (1 - v / top);
 
 	const first = xs[0] as number;
@@ -80,6 +83,7 @@ export function Chart(props: {
 	const barW = Math.max(1, (PLOT_W / n) * 0.78);
 	const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * top);
 	const hoverNote = hover === null ? null : (props.note?.(hover) ?? null);
+	const hoverX = hover === null ? 0 : x(hover);
 
 	return (
 		<div class="chart">
@@ -88,7 +92,7 @@ export function Chart(props: {
 					viewBox={`0 0 ${W} ${H}`}
 					class="chart-svg"
 					role="img"
-					aria-label="Chart"
+					aria-label={props.ariaLabel ?? "Chart"}
 					onPointerMove={pick}
 					onPointerLeave={() => setHover(null)}
 				>
@@ -130,10 +134,10 @@ export function Chart(props: {
 					))}
 
 					{kind === "bars"
-						? xs.map((t, i) => {
+						? xs.map((_, i) => {
 								let base = 0;
 								return (
-									<g key={t}>
+									<g key={i}>
 										{series.map((s) => {
 											const v = s.values[i] ?? 0;
 											const bottom = base;
@@ -176,8 +180,8 @@ export function Chart(props: {
 					{hover !== null && (
 						<line
 							class="chart-cursor"
-							x1={x(hover)}
-							x2={x(hover)}
+							x1={hoverX}
+							x2={hoverX}
 							y1={PAD.top}
 							y2={PAD.top + PLOT_H}
 						/>
@@ -187,9 +191,9 @@ export function Chart(props: {
 					<div
 						class="chart-tip"
 						style={
-							x(hover) / W > 0.6
-								? { right: `calc(${100 - (x(hover) / W) * 100}% + 10px)` }
-								: { left: `calc(${(x(hover) / W) * 100}% + 10px)` }
+							hoverX / W > 0.6
+								? { right: `calc(${100 - (hoverX / W) * 100}% + 10px)` }
+								: { left: `calc(${(hoverX / W) * 100}% + 10px)` }
 						}
 					>
 						<div class="tip-title">

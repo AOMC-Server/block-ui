@@ -1,3 +1,6 @@
+import { beginDrag } from "./dragState";
+import { dropIndex, insertIndex } from "./reorderMath";
+
 /** A copy of `items` with the one at `from` moved to index `to`. */
 export function moveItem<T>(
 	items: readonly T[],
@@ -24,26 +27,6 @@ export function renumber<T extends { sortOrder: number }>(
 		item.sortOrder === i ? [] : [{ item, sortOrder: i }],
 	);
 }
-
-/**
- * Where the dragged item ends up: the number of other items whose middle is above `y`, the middle
- * of the dragged item. `mids` are the middles of all items before the drag started.
- */
-export function dropIndex(
-	mids: readonly number[],
-	from: number,
-	y: number,
-): number {
-	let to = 0;
-	mids.forEach((m, i) => {
-		if (i !== from && m < y) to++;
-	});
-	return to;
-}
-
-/** Where a dragged item lands in another list: the number of its items whose middle is above `y`. */
-export const insertIndex = (mids: readonly number[], y: number): number =>
-	mids.filter((m) => m < y).length;
 
 /**
  * Dragging an item out of its list onto another one; the targets are elements with
@@ -73,7 +56,8 @@ function scrollParent(el: HTMLElement): HTMLElement | null {
 /**
  * Drags one list item up and down by its handle (pointer events, so it works with touch too).
  * The other items slide out of the way; on release `onDrop(from, to)` is called with the item's
- * old and new index. Escape cancels. The list scrolls when the pointer nears its edge.
+ * old and new index. Escape cancels (and is not passed on, so it does not also close a dialog
+ * the list is in). The list scrolls when the pointer nears its edge.
  */
 export function startReorder(
 	e: PointerEvent,
@@ -92,6 +76,7 @@ export function startReorder(
 
 	e.preventDefault();
 	handle.setPointerCapture(e.pointerId);
+	const endDrag = beginDrag();
 	const scroller = scrollParent(item);
 	let startY = e.clientY;
 	let startScroll = scroller?.scrollTop ?? 0;
@@ -160,6 +145,11 @@ export function startReorder(
 	};
 
 	const tick = () => {
+		// The row was removed by a re-render: nothing is left to drag, and no event will say so.
+		if (!handle.isConnected) {
+			cleanup();
+			return;
+		}
 		if (scroller) {
 			const r = scroller.getBoundingClientRect();
 			const near =
@@ -183,7 +173,14 @@ export function startReorder(
 		handle.removeEventListener("pointermove", onMove);
 		handle.removeEventListener("pointerup", onUp);
 		handle.removeEventListener("pointercancel", onCancel);
+		handle.removeEventListener("lostpointercapture", onCancel);
 		window.removeEventListener("keydown", onKey, true);
+		try {
+			handle.releasePointerCapture(e.pointerId);
+		} catch {
+			// Already released (the pointer went up, or the handle left the page).
+		}
+		endDrag();
 		over?.classList.remove("drop-target");
 		for (const el of items) {
 			el.style.transform = "";
@@ -215,11 +212,13 @@ export function startReorder(
 	const onCancel = () => cleanup();
 	const onKey = (ev: KeyboardEvent) => {
 		if (ev.key !== "Escape") return;
-		ev.stopPropagation();
+		ev.preventDefault();
+		ev.stopImmediatePropagation();
 		cleanup();
 	};
 	handle.addEventListener("pointermove", onMove);
 	handle.addEventListener("pointerup", onUp);
 	handle.addEventListener("pointercancel", onCancel);
+	handle.addEventListener("lostpointercapture", onCancel);
 	window.addEventListener("keydown", onKey, true);
 }

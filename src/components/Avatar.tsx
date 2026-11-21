@@ -1,7 +1,9 @@
+import { cx } from "../lib/cx";
+
 const AVATAR_COLORS = 8;
 
 /** Which of the `--avatar-1..8` colours a name gets; the same name always gets the same one. */
-export function avatarColorIndex(name: string): number {
+function avatarColorIndex(name: string): number {
 	let h = 0;
 	for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
 	return (h % AVATAR_COLORS) + 1;
@@ -18,7 +20,7 @@ export function Avatar(props: {
 	round?: boolean;
 }) {
 	const size = props.size ?? 24;
-	const cls = `avatar ${props.round ? "round" : ""}`;
+	const cls = cx("avatar", props.round && "round");
 	if (props.src)
 		return (
 			<img
@@ -32,7 +34,7 @@ export function Avatar(props: {
 		);
 	return (
 		<span
-			class={`${cls} initials`}
+			class={cx(cls, "initials")}
 			style={{
 				"--avatar-size": `${size}px`,
 				background: `var(--avatar-${avatarColorIndex(props.name)})`,

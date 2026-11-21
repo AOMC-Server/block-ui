@@ -1,7 +1,7 @@
 # @aomc-server/block-ui
 
 A blocky, Minecraft-inspired UI for Preact: components, hooks, helpers and one stylesheet, shared by
-the AOMC apps (blockmap, blocklogs). It is a self-contained, opt-in style: nothing is applied until
+the AOMC apps. It is a self-contained, opt-in style: nothing is applied until
 an app imports the CSS and sets `data-mode` / `data-style` on `<html>`.
 
 It ships **TypeScript/TSX source**, no build step. Your bundler compiles it with the rest of your app.
@@ -14,7 +14,7 @@ It ships **TypeScript/TSX source**, no build step. Your bundler compiles it with
 ## Install
 
 ```sh
-bun add github:AOMC-Server/block-ui#v0.2.0
+bun add github:AOMC-Server/block-ui#v0.3.0
 bun add preact @preact/signals   # the peers, if the app does not have them yet
 ```
 
@@ -107,8 +107,8 @@ services:
 COPY --from=block-ui . /block-ui
 ```
 
-With `WORKDIR /app`, `/block-ui` is where both `file:../block-ui` (an app with one package, blocklogs) and
-`file:../../block-ui` (a workspace package in `web/`, blockmap) point, so the `package.json` stays as it is on the
+With `WORKDIR /app`, `/block-ui` is where both `file:../block-ui` (an app with one package) and
+`file:../../block-ui` (a workspace package in `web/`) point, so the `package.json` stays as it is on the
 host. Only the stage that installs devDependencies and builds the web app needs it; a `--production` stage skips the
 library (it is a devDependency: the browser bundle is all the final image needs). The library has a `.dockerignore`
 (`node_modules`, `demo/dist`, `.git`) so that it is cheap as a build context. Once the dependency is `github:AOMC-Server/block-ui#vX.Y.Z` (or a
@@ -169,8 +169,8 @@ plugins: [
 ```
 
 A `reader` gets the parsed JSON of the key (or `null`) and `{ storage, light, location }`; it returns
-`{ mode?: "system"|"dark"|"light", style?, palette? }`. blockmap's script (two keys, route and dimension
-checks) is a `reader` that reads `ctx.storage` itself.
+`{ mode?: "system"|"dark"|"light", style?, palette? }`. An app that keeps its appearance in several keys, or
+decides by route, reads `ctx.storage` and `ctx.location` itself.
 
 ## Theming
 
@@ -199,9 +199,14 @@ applyAppearance({
 ```
 
 `palette`: `undefined` leaves it alone, `null` removes the attribute (back to overworld).
-`appearance` is a signal holding what was applied. `paletteScope("dye-red")` returns
-`{ "data-palette", "data-mode", "data-style" }` to spread on an element that needs a palette of its own
-(mode and style are repeated because tokens derived from them are computed where declared).
+`appearance` is a signal holding what was applied. `prefersLight` is a read-only signal that starts following the
+system the first time it is read (importing the library does not touch `matchMedia`).
+
+`paletteScope("dye-red")` returns `{ "data-palette", "data-mode", "data-style" }` to spread on an element that
+needs a palette of its own. Mode and style are repeated because a palette's tokens are selected by
+`[data-palette][data-mode]` on the element itself, and the tokens derived from them (title bars, shadows) are worked
+out where the style is declared. It reads `appearance`, so calling it while rendering keeps the element in step with
+mode and style changes; before `applyAppearance` has run it uses the attributes on `<html>`.
 
 ### Adding a palette
 
@@ -259,23 +264,23 @@ cannot express, for the library's components only. An app adds its own selectors
 
 ## Components
 
-Everything is exported from `@aomc-server/block-ui` (and `/components`).
+Everything is exported from `@aomc-server/block-ui`.
 
 | Component                                                    | Props                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Modal`                                                      | `title, onClose, wide?, footer?, closeOnBackdrop?, class?, children`. Modal stack, focus trap, focus restore, capture-phase Escape (topmost only). `footer` renders `.modal-foot`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `Modal`                                                      | `title, onClose, wide?, footer?, closeOnBackdrop?, class?, children`. Modal stack, focus trap, focus restore, capture-phase Escape (topmost only; ignored while a `Grip` drag inside it is in progress, so that Escape cancels the drag first). `footer` renders `.modal-foot`.                                                                                                                                                                                                                                                                                                                                                                        |
 | `Confirm`                                                    | `title, children, confirmLabel? ("Confirm"), cancelLabel?, danger?, busy?, closeOnBackdrop?, onConfirm, onClose`. `closeOnBackdrop` is passed to the `Modal`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `Toasts`, `toast(text, kind?, ms?)`                          | mount `<Toasts />` once. `kind`: `"info"` (default) \| `"ok"` \| `"error"`; `ms` default 3000 (6000 for error). Returns an id. `dismissToast(id)`, `clearToasts()`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `Toasts`, `toast(text, kind?, ms?)`                          | mount `<Toasts />` once. `kind`: `"info"` (default) \| `"ok"` \| `"error"`; `ms` default 3000 (6000 for error). Returns an id for `dismissToast(id)`. Each toast announces itself by role (`alert` for errors, else `status`); the stack is not also a live region.                                                                                                                                                                                                                                                                                                                                                                                    |
 | `Page`                                                       | `title, back?: {href,label} \| node, actions?, banner?, embedded?, stack?, class?, children`. Fixed to the window; `embedded` for a page inside an app shell; `stack` spaces children.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `Panel`                                                      | `title, onClose, closeText?, class?, tabs?, footer?, resize?, children`. `resize: { width, min, max, onChange(w, commit), onReset, edge?: "left"\|"right" }`. No position of its own.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `createWidthStore`                                           | `{ key, min, max: number \| (windowWidth) => number, default, cssVar?, cssValue? }` → `{ width (signal), min, default, max(), clamp(), set(w, persist?), reset(), dispose() }`; persists to localStorage and mirrors `cssVar` on `<html>`.                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `Card`, `Tile`, `TileGrid`                                   | `Card: title?, actions?, footer?, inner?, class?`; `Tile: label, value, hint?`; `TileGrid: tiles[], plain?, min?`. `plain` = flat tiles, bold labels, wider grid (page sections); `min` = narrowest tile in px (`--tile-min`, default 180, plain 200).                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `Field`                                                      | `label, hint?, flow?, class?, children` (label wraps the control). `flow` = an ordinary block with a margin of its own (between paragraphs), instead of a form field stacked by its `.form`.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `Field`                                                      | `label, hint?, flow?, class?, children`. The label wraps the control; the hint sits outside it and is linked to the control with `aria-describedby`. `flow` = an ordinary block with a margin of its own (between paragraphs), instead of a form field stacked by its `.form`.                                                                                                                                                                                                                                                                                                                                                                         |
 | `Badge`, `Count`                                             | `Badge: kind?: "ok"\|"warn"\|"error"\|"running", title?`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `Progress`                                                   | `value?` (0–1; omit = indeterminate), `label?`, `ariaLabel?`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `BossBar`                                                    | `title, fill (0–1), color: "yellow"\|"purple"\|"maintenance", action?, onAction?`; stack in `.bossbar-wrap`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `Segmented<T>` (alias `RangePicker`)                         | `value, options: T[], names?: Record<T,string>, onChange, label?, small?`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `Tabs<T>`                                                    | `tabs: {id,label,href?}[], value, onChange?, label?, center?`. Tabs with `href` are links; plain click calls `onChange` and prevents navigation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `Segmented<T>`                                               | `value, options: T[], names?: Record<T,string>, onChange, label, small?`. `label` is the accessible name of the group (required; it is not drawn).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `Tabs<T>`                                                    | `tabs: {id,label,href?}[], value, onChange?, label?, center?`. With `href` on any tab: a `<nav>` of links, the current one `aria-current="page"`; a plain click calls `onChange` and prevents navigation. Otherwise a `tablist` of buttons: arrow keys, Home and End move and select; roving `tabindex`.                                                                                                                                                                                                                                                                                                                                               |
 | `Toggle`                                                     | `checked, onChange(bool), label?, hint?, disabled?, inline?, bold?, class?, ariaLabel?, title?`. Row by default (`.toggle`, bold label), `inline` = `.check` (`bold` for a list of them; the label keeps the text weight).                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `initToggleDrag(selector = "input.switch")`                  | drag the knob; returns an uninstall function                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `SortTh`                                                     | `label, col, sort, dir: "asc"\|"desc", onSort(col), num?, hint?`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -284,11 +289,11 @@ Everything is exported from `@aomc-server/block-ui` (and `/components`).
 | `Avatar`                                                     | `name, src?, size? (24), round?` (initials on `--avatar-N`, or a pixelated image)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `Dot`                                                        | `color, label?, title?, size?`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `ConnectionBadge`                                            | `status: "live"\|"down"\|"connecting", labels?, title?`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `Chart`                                                      | `kind: "steps"\|"bars", xs, series: {key,label,color,values}[], formatY, formatX, formatTip?, note?`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `Chart`                                                      | `kind: "steps"\|"bars", xs, series: {key,label,color,values}[], formatY, formatX, formatTip?, note?, ariaLabel? ("Chart")`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `PreviewSelect<T>`                                           | `options: {value,label,preview,scope?}[], value, onChange, label, wide?`. `scope` = attributes (e.g. `paletteScope(...)`) for a palette wrapper.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `ModePicker`, `ChoicePicker<T>`, `StylePicker`               | `ModePicker: value: ModeChoice, onChange, label? ("Colours"), narrow?, class?`. `ChoicePicker: label, value, options: {id,name}[], onChange, hint?, narrow?, class?` (a labelled row of buttons; `ModePicker` is one with `MODES`). `StylePicker: value: StyleId, onChange, label? ("Style"), previewTitle? ("Window"), previewButtons? (["Cancel","OK"]), palette?, class?`: a card per style with a small window drawn in that style; `palette` draws the previews in a palette of their own (`paletteScope`), otherwise they take the page's. Controlled; the app saves the choice and calls `applyAppearance`. `narrow` caps the buttons at 420px. |
-| `Grip` + `reorder.ts`                                        | `Grip: id, label, index, count, onMove(from,to), cross?, itemSelector? ("li")`. `startReorder`, `moveItem`, `renumber`, `dropIndex`, `insertIndex`. `CrossDrop: { accepts(id: string), onDrop(id: string, index\|null), rows? }`; targets carry `data-drop-target="id"`.                                                                                                                                                                                                                                                                                                                                                                               |
-| `PopupText`, `parseText`, `parseInline`, `safeHref`          | markup subset: `**bold**`, `[text](https://…)`, line breaks; never HTML                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `Grip` + `/reorder`                                          | `Grip: id, label, index, count, onMove(from,to), cross?, itemSelector? ("li")`. Keyboard moves keep the focus on the row after the list re-renders. `startReorder`, `moveItem`, `renumber`. Escape cancels a drag. `CrossDrop: { accepts(id: string), onDrop(id: string, index\|null), rows? }`; targets carry `data-drop-target="id"`.                                                                                                                                                                                                                                                                                                                |
+| `PopupText`, `parseText`                                     | markup subset: `**bold**`, `[text](https://…)` (http and https only), line breaks; never HTML. `parseText` returns the lines as parts.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `copyText(text, done, notify?)`, `ExpirySelect`, `ShownOnce` | `notify(text, "ok"\|"error")` defaults to `toast()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `moveFocus(menu, step, selector?)`                           | Up/Down in a menu (default `button.menu-item:not(:disabled)`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
@@ -304,16 +309,17 @@ Everything is exported from `@aomc-server/block-ui` (and `/components`).
 Everything is also importable from the main entry, but the modules without UI have their own subpath, so that unit
 tests (and anything else that should not load Preact components) do not pull in TSX:
 
-| subpath                                           | contents                                                                                        |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `/theme`                                          | modes, styles, `applyAppearance`, `paletteScope`, `prepaintScript`, `fontSizeFor`, …            |
-| `/width`                                          | `createWidthStore`                                                                              |
-| `/reorder`                                        | `moveItem`, `renumber`, `dropIndex`, `insertIndex`, `startReorder`, `CrossDrop`                 |
-| `/markdown`                                       | `parseText`, `parseInline`, `safeHref` (the popup markup subset; the parser, not the component) |
-| `/menu`                                           | `moveFocus`                                                                                     |
-| `/format`, `/csv`, `/errors`, `/events`, `/hooks` | as listed below                                                                                 |
-| `/components`                                     | all the components (TSX)                                                                        |
-| `/css`, `/css/*`, `/fonts/*`                      | the stylesheet (typed, see Setup), its single files, the font                                   |
+| subpath                                           | contents                                                                                  |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `/theme`                                          | modes, styles, `applyAppearance`, `paletteScope`, `prepaintScript`, `installFontScale`, … |
+| `/width`                                          | `createWidthStore`                                                                        |
+| `/reorder`                                        | `moveItem`, `renumber`, `startReorder`, `CrossDrop`                                       |
+| `/markdown`                                       | `parseText` (the popup markup subset; the parser, not the component)                      |
+| `/menu`                                           | `moveFocus`                                                                               |
+| `/format`, `/csv`, `/errors`, `/events`, `/hooks` | as listed below                                                                           |
+| `/css`, `/css/*`, `/fonts/*`                      | the stylesheet (typed, see Setup), its single files, the font                             |
+
+The components (TSX) come from the main entry only.
 
 ### Library helpers
 
@@ -321,22 +327,23 @@ tests (and anything else that should not load Preact components) do not pull in 
   generic over the app's event map `M` (family → data; a topic is `family` or `family:key`). Returns
   `{ subscribe(topic, { onEvent(data, {snapshot}), onError?, poll?, pollMs? }), onStatus(fn), healthy }`.
   Wire format: `GET {url}?topics=a,b:1` streams JSON `{ topic, seq, snapshot, final?, data }` or `{ topic, error }`
-  with `error`: `"not found" | "forbidden" | "unknown topic"`. `final` ends the topic after that event. Also a shared
-  untyped `events`, `subscribe`, `onConnection`.
+  with `error`: `"not found" | "forbidden" | "unknown topic"`. `final` ends the topic after that event. A frame that
+  is not such JSON is dropped. Each `subscribe` call is its own follower, even with the same subscription object.
 
   ```ts
   type Events = { map: MapEvent; revision: RevisionEvent };
   const stream = createEventStream<Events>();
   export const subscribe = stream.subscribe;
   ```
-- `/format`: `formatNumber`, `formatInt`, `formatHours`, `secsToHours`, `formatPercent`, `formatBytes(n, style?)`,
-  `formatDuration`, `formatElapsed`, `formatRemaining`, `formatEta`, `formatProgress`, `formatTime`, `formatDay`, `parseTs`,
-  `formatShortTs`, `formatShortDate`, `formatRelative`, `toYmd`.
-  **Bytes**: both apps divide by 1024. `formatBytes(n)` = IEC labels, 1 decimal below 100 ("1.5 KiB", logs' `bytes`);
-  `formatBytes(n, "kb")` = "2.00 KB" labels with 2/1/0 decimals (blockmap's `formatBytes`).
-  **Durations**: `formatDuration` is coarse ("1d 3h", blockmap), `formatElapsed` precise ("1h 05m", "4m 12s", logs' `duration`).
-- `/csv`: `csvCell`, `toCsv`. `/errors`: `failureMessage(status, body)`.
-- `/theme`: see Theming, plus `fontSizeFor`, `installFontScale()`.
+- `/format`: `formatNumber`, `formatInt`, `formatHours`, `formatPercent`, `formatBytes(n, style?)`, `formatDuration`,
+  `formatElapsed`, `formatProgress`, `formatTime`, `formatDay`, `formatRelative`, `toYmd`. Numbers and dates follow the
+  user's locale; `toYmd` is ISO and UTC.
+  **Bytes**: binary (1024 per step). `formatBytes(n)` has IEC labels and one decimal below 100 ("1.5 KiB");
+  `formatBytes(n, "kb")` has "KB" labels with 2/1/0 decimals ("2.00 KB").
+  **Durations** (in seconds): `formatDuration` is coarse ("3d 4h", "2h 5m", "7m"), `formatElapsed` is precise ("1h 05m",
+  "4m 12s", "9s"). `formatRelative(time)` is "30m ago" for a Date or milliseconds.
+- `/csv`: `toCsv`. `/errors`: `failureMessage(status, body)`.
+- `/theme`: see Theming, plus `installFontScale()`.
 
 ## Class reference
 
@@ -350,7 +357,7 @@ The body is **not** `overflow: hidden`; an app shell adds that.
 **Segmented/tabs**: `.segmented`, `.tabbar` (trays of `.btn`), `.tabs` (+ `.center`) with `.tab` items (+ `.active`).
 **Forms**: inputs/`select`/`textarea` are styled by element; `.field` (`.flow`) `.label` `.field-label` `.form` `.range`;
 `input.switch` (slide toggle), `.toggle` (settings row, `.danger`, `.toggle-text`), `.check` (inline switch + label);
-range slider by element; `.preview-select*`; `.palette-scope`; the pickers `.mode-picker` (`.narrow`) `.style-picker` `.style-option` `.style-preview` `.preview-window` `.preview-head` `.preview-body`.
+range slider by element; `.preview-select*`; `.palette-scope`; the pickers `.choice-picker` (`.narrow`) `.style-picker` `.style-option` `.style-preview` `.preview-window` `.preview-head` `.preview-body`.
 **Surfaces**: `.card` (`.inner`) `.card-head` `.card-foot` `.page-actions`; `.panel` `.panel-head` `.panel-body`
 `.panel-foot` `.panel-resize` (`.right`); page shell `.page-root` (`.embedded`) `.page-head` `.page` `.page-inner`
 `.page-section` `.page-split`; `.tiles` (`.plain`, `--tile-min`) `.tile` `.tile-label` `.tile-value` `.tile-hint`; `.grid`; `.kv` (`.left`);
@@ -366,89 +373,42 @@ range slider by element; `.preview-select*`; `.palette-scope`; the pickers `.mod
 
 Positioning is deliberately the app's job: `.panel`, `.tooltip`, `.bossbar-wrap` have none. The toast stack is
 fixed and moves with `--toast-bottom`, `--toast-left`, `--toast-right`, `--toast-align`
-(blockmap: `--toast-left: 8px; --toast-right: 8px; --toast-align: center; --toast-bottom: var(--above-hotbar)`).
+(for example `--toast-left: 8px; --toast-right: 8px; --toast-align: center; --toast-bottom: 64px` for a toast
+centred above a toolbar).
 
-### Decisions on names that collided
+### Class semantics
 
-| name                                   | decision                                                                                                                                                                                                          |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.app`                                 | not defined; the app shell is the app's                                                                                                                                                                           |
-| `.page-root`                           | fixed full-window column with the blockmap pattern; `.embedded` = ordinary block inside a shell, a plain `--s1` window surface (not the desktop) in win98/xp                                                      |
-| `.page` / `.page-inner`                | `.page` scrolls, padded; `.page-inner` is block, `max-width: var(--page-max, 760px)`, centred; `.stack` spaces children                                                                                           |
-| `.page-head`                           | a title **bar** (blockmap): back link, `h1`, `.page-actions` pushed to the end                                                                                                                                    |
-| `.section-title`                       | small-caps label (blockmap), not an `h2`                                                                                                                                                                          |
-| `.field` / label                       | flex column with a gap in forms, `.label` (blockmap) and `.field-label` (logs) look the same. `.field.flow` (`Field flow`) = a block with `margin: 14px 0` and the label 6px above, between paragraphs (blockmap) |
-| `.check`                               | inline switch + label, the label in the text's weight, `.check.bold` for bold (`Toggle inline`, `bold`). The logs "box" checkbox is gone                                                                          |
-| slide toggle                           | `input.switch`, **not** every checkbox. `.toggle` stays the settings row (blockmap's meaning)                                                                                                                     |
-| `.tabs` / `.tab`                       | `.tabs` = raised tray, `.tab` = light raised item, active stays light (not green)                                                                                                                                 |
-| `.toast`                               | kinds `info` (default), `ok`, `error`. logs' `.err` is now `.error`                                                                                                                                               |
-| `.badge`                               | blockmap pill; variants are solid: `ok` green, `warn`/`running` `--warn`, `error` red                                                                                                                             |
-| `.progress`                            | `.progress > .bar` (blockmap). logs' bare `> div` child needs class `bar`. `.progress-wrap` = flex column                                                                                                         |
-| `.modal*`                              | fixed backdrop; width 600 (`.wide` 1000); footer bar is `.modal-foot`, in-body button row is `.modal-actions`                                                                                                     |
-| `.avatar`                              | 32px square (bordered); `.initials` colours by name; `.round` for a circle; image is pixelated                                                                                                                    |
-| `.count`                               | pill; no `margin-left: auto` (add it where you need it)                                                                                                                                                           |
-| `.tip-title`                           | weight 700                                                                                                                                                                                                        |
-| `.stats-table` / `.stats-num` / `.num` | one set: `.table` + `.num` (below)                                                                                                                                                                                |
-| `.table` variants                      | `.table-wrap.flush` frameless; `.table.plain` = plain header, vertical-align middle, no row hover (also `.middle`, `.no-hover` alone); for tables straight in a `.page-section`                                   |
-| `.hint`                                | 13px muted; block `p`/`div` get `margin: 4px 0`; `--note-gap` for all elements                                                                                                                                    |
-| `.muted`                               | colour only; `p.muted` keeps `margin: 4px 0`; `--note-gap` for all elements                                                                                                                                       |
-| `.range`                               | logs' flex row for date-range controls (Segmented does **not** use it)                                                                                                                                            |
-| `.wrap`                                | logs' meaning: `max-width: 420px; overflow-wrap: anywhere`                                                                                                                                                        |
-| `.link`                                | blockmap's muted underlined action                                                                                                                                                                                |
-| `.tile`                                | label, value (display font, `--yellow`), hint; bevelled, grid `--tile-min` 180px; `.tiles.plain` = flat, bold labels, 200px (blockmap); replaces `.stats-tile`/`.stats-grid` and logs' `.tile`                    |
-| `.card`                                | s1 raised surface (logs); `.card.inner` = the lighter s2 card of blockmap (`.layer` etc.)                                                                                                                         |
-| `.dragging`                            | only for reorder; the toggle knob drag uses `.knob-drag`                                                                                                                                                          |
-| appearance pickers                     | `.mode-picker`, `.style-picker` and the previews are the library's (`ModePicker`, `StylePicker`); the win98/xp preview windows are in `styles.css`                                                                |
+| name                    | meaning                                                                                                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.app`                  | not defined; the app shell is the app's                                                                                                                              |
+| `.page-root`            | fixed full-window column; `.embedded` = ordinary block inside a shell, a plain `--s1` window surface (not the desktop) in win98/xp                                   |
+| `.page` / `.page-inner` | `.page` scrolls, padded; `.page-inner` is block, `max-width: var(--page-max, 760px)`, centred; `.stack` spaces children                                              |
+| `.page-head`            | a title **bar**: back link, `h1`, `.page-actions` pushed to the end                                                                                                  |
+| `.section-title`        | small-caps label, not an `h2`                                                                                                                                        |
+| `.field` / label        | flex column with a gap in forms; `.label` and `.field-label` look the same. `.field.flow` (`Field flow`) = a block with `margin: 14px 0`                             |
+| `.check`                | inline switch + label, the label in the text's weight, `.check.bold` for bold (`Toggle inline`, `bold`)                                                              |
+| slide toggle            | `input.switch`, **not** every checkbox. `.toggle` is the settings row                                                                                                |
+| `.tabs` / `.tab`        | `.tabs` = raised tray, `.tab` = light raised item, active stays light (not green)                                                                                    |
+| `.toast`                | kinds `info` (default), `ok`, `error`                                                                                                                                |
+| `.badge`                | pill; variants are solid: `ok` green, `warn`/`running` `--warn`, `error` red                                                                                         |
+| `.progress`             | `.progress > .bar`; `.progress-wrap` = flex column                                                                                                                   |
+| `.modal*`               | fixed backdrop; width 600 (`.wide` 1000); footer bar is `.modal-foot`, in-body button row is `.modal-actions`                                                        |
+| `.avatar`               | 32px square (bordered); `.initials` colours by name; `.round` for a circle; image is pixelated                                                                       |
+| `.count`                | pill; no `margin-left: auto` (add it where you need it)                                                                                                              |
+| `.tip-title`            | weight 700                                                                                                                                                           |
+| `.table` variants       | `.table-wrap.flush` frameless; `.table.plain` = plain header, vertical-align middle, no row hover (also `.middle`, `.no-hover` alone)                                |
+| `.hint`                 | 13px muted; block `p`/`div` get `margin: 4px 0`; `--note-gap` for all elements                                                                                       |
+| `.muted`                | colour only; `p.muted` keeps `margin: 4px 0`; `--note-gap` for all elements                                                                                          |
+| `.range`                | flex row for date-range controls (Segmented does **not** use it)                                                                                                     |
+| `.wrap`                 | `max-width: 420px; overflow-wrap: anywhere`                                                                                                                          |
+| `.link`                 | muted underlined action                                                                                                                                              |
+| `.tile`                 | label, value (display font, `--yellow`), hint; bevelled, grid `--tile-min` 180px; `.tiles.plain` = flat, bold labels, 200px                                          |
+| `.card`                 | s1 raised surface; `.card.inner` = the lighter s2 card                                                                                                               |
+| `.dragging`             | only for reorder; the toggle knob drag uses `.knob-drag`                                                                                                             |
+| appearance pickers      | `.choice-picker`, `.style-picker` and the previews are the library's (`ModePicker`, `ChoicePicker`, `StylePicker`); the win98/xp preview windows are in `styles.css` |
 
-## Migration
-
-### blockmap (aomc-map)
-
-- Imports: `ui/Modal` → `Modal`; `ui/Toast` + `state.notice`/`showNotice(text, kind)` → `toast(text, kind)`
-  (`"info"` default, `"error"`; keep `showNotice` as a one-line wrapper) and mount `<Toasts />`; `ui/Panel` →
-  `Panel` with `resize` from `createWidthStore({ key: "blockmap.panelWidth", min: 320, max: (w) => Math.max(320, Math.min(w - 16, w * 0.7, 900)), default: 400, cssVar: "--panel-w", cssValue: (w) => \`min(\${w}px, calc(100vw - 16px))\` })`  (and`setPanelWidth`→`store.set`); `ui/Page`→`Page` (`back={{ href: "/", label: "Map" }}`, `banner={<MaintenanceNotice />}`, mount `<Toasts />`yourself);
- `RangePicker`→`Segmented`(or the alias);`statsCommon.TileGrid`→`TileGrid`(tiles are now`{ label, value, hint? }`, `.stats-grid`/`.stats-tile`/`.stats-value`→`.tiles`/`.tile`/`.tile-value`);
-  `statsCommon.SortHeader`→`SortTh` (`column.key`→`col`, `column.label`→`label`, `column.hint`→`hint`, `dir="desc"`, `num`); `useStats(call, deps)`→
- `useAsync(async () => { const r = await attempt(call); if (!r.ok) throw new Error(r.error); return r.body; }, deps)`;
-  `Chart`, `Grip`, `reorder`, `PreviewSelect`, `PopupText`/`markdown`, `moveFocus`, `copyText`, `ExpirySelect`, `ShownOnce`, `toggleDrag`, `fontScale`, `format`, `events`, `errors.failureMessage`, `theme`come from the package.
- `copyText(text, done)` now toasts by itself.
-- `theme.ts`: keep `DIMENSION_THEME_NAMES`, `savePalette`, `PALETTE_KEY` locally; `dyeScope(dye)` → `paletteScope(dye ? \`dye-\${dye}\` : undefined)`;
-  `applyAppearance({ mode, palette, style })`is compatible.`PreviewSelect`option`dye`→`scope: paletteScope(\`dye-\${dye}\`)`  (wrap the`.dye-scope`/`.strong`class around it yourself if you need`--dye-k`; the library wrapper is `.palette-scope`).
-- CSS: replace the token blocks, base rules, `.btn` … `.progress`, `.toast`, `.bossbar`, `.panel`/`.modal`/`.page-*` surface rules, tables, charts and generic `@scope` rules with
-  `import "@aomc-server/block-ui/css"`. Keep: nether/end/unknown + dye palettes (selectors `[data-palette="nether"][data-mode="dark"]` …; remember `--map-bg`, `--dye*`), `--hotbar-h`, `--above-hotbar`, `--panel-w`, `.app`
-  (`html, body, #app { overflow: hidden; height: 100%; overscroll-behavior: none }` now yours), docks, hotbar, popup, context menu, map-only `@scope` rules
-  (and `--tip-tint: var(--dye)` for the tooltip tint), positions of `.panel` (`position: absolute; top/right/bottom; width: var(--panel-w)`), `.bossbar-wrap` (`position: absolute`), `.page-root` background tweaks.
-- Class renames: `.stats-table` → `.table`, `.stats-table-wrap` → `.table-wrap`, `.stats-num` → `.num`, `.stats-rank` → `.rank`, `.stats-sort` → `.sort` (`th > button.plain.sort`), `.stats-me` → `tr.me`,
-  `.stats-range` (fieldset) → `.segmented-set` (add your own `margin: 0 auto 16px`), `.toggle` rows keep working through `Toggle`; **every** `<input type="checkbox">` now needs `class="switch"` (use `Toggle`);
-  `.toggle.maintenance-on` → `.toggle.danger`; `.new-link` → `.shown-once`, `.link-row` (in `ShownOnce`) → `.copy-row`; `.dye-scope` in `PreviewSelect` → `.palette-scope`;
-  `data-drop-layer` → `data-drop-target` (`CrossDrop.accepts/onDrop` take a **string** id, add `rows: ".features > li:not(.muted)"`); `.toast` is no longer positioned by itself: set `--toast-*` (see above);
-  `.tabs.tabbar` + `plain tab` buttons → `Tabs` (or keep the markup: `.tabs` still works, drop `.tabbar`; blockmap's `margin: 0 auto 16px` → `.tabs.center` + margin);
-  `.badge.warn/.error` now solid colours; `.bossbar` unchanged; `.modal-backdrop` is `position: fixed` (was absolute inside `.app`).
-- Modal props are the same (`title, onClose, children`); new: `wide`, `footer`, `closeOnBackdrop`.
-- Layout variants that keep the old look: `Field flow` / `.field.flow` for the settings and form fields between paragraphs, `--note-gap: 4px` on `:root` for the `.muted`/`.hint` margins, `TileGrid plain`, `.table-wrap.flush` + `.table.plain` for tables in a page section, `Toggle inline` for the `.check` rows (plain `input.switch` stays right for a bare switch in a table cell or a list row), `ModePicker`/`ChoicePicker`/`StylePicker` for the settings page (`StylePicker previewTitle="Layers" previewButtons={["Edit", "Save"]}`).
-- Storage keys are the app's own: `blockmap.settings`, `blockmap.palette`, `blockmap.position`, `blockmap.panelWidth` (the library's `block-ui.appearance` is only the `prepaintScript` default).
-- Dropped from the package (stay in the app): `formatEventTime/Day` (use `formatTime(r.exportedAt ?? r.createdAt)`), `inviteProblem`, `DIMENSION_THEME_NAMES`.
-
-### blocklogs (logs_parser)
-
-- Format names: `int` → `formatInt`, `hours` → `formatHours`, `secsToHours`, `percent` → `formatPercent`, `duration` → `formatElapsed`, `bytes` → `formatBytes` (same strings),
-  `parseTs`, `shortTs` → `formatShortTs`, `shortDate` → `formatShortDate`, `relative` → `formatRelative`, `ymd` → `toYmd`. `csvCell`/`toCsv` from `/csv` (`geoCsv` stays in the app).
-- `events.ts`: `createEventStream<Events>()` with your `Events` map (`{ data: …, log: … }`); `onConnection(fn)` → `stream.onStatus(fn)`; the options (`onStatus`, …) are unchanged; `onError` may now also get `"not found" | "forbidden"`.
-- `hooks.ts`: `useFetch(path, params, pollMs, live)` → `useAsync((signal) => getJson<T>(buildUrl(path, params), signal), [url], { pollMs, refresh: live ? dataRev : undefined })`
-  (keep a thin `useFetch` wrapper; `path === null` → pass `null`). `Fetched<T>` = `AsyncState<T>`. `useDebounced`, `usePageOffset` move unchanged.
-- `Modal`/`Confirm`: same props plus `closeOnBackdrop` — logs closed on backdrop press, so pass `closeOnBackdrop` (also to the delete `Confirm`); `footer` now renders `.modal-foot`. Escape/focus handling is stricter (focus trap, topmost only). `Confirm` same props.
-- `Toast`: `toast(text, "ok" | "err")` → `toast(text, "ok" | "error")`; `.toast.err` → `.toast.error`; `<Toasts />` is the package's.
-- `Check` (`.check .box`) → `<Toggle inline bold checked onChange label />` (`bold` keeps the label weight of the sidebar and form rows; drop it for body text); call `initToggleDrag()` if you want dragging. `.check input`/`.box` CSS goes.
-- `Page({ title, actions })`: now a title bar; use `<Page embedded …>` inside the `.app` grid (and `--page-max: 1400px`, `stack` for the old `.page-inner` flex gap). In win98/xp an embedded page is a plain window surface, so loose text is readable.
-- The settings page's mode and style pickers are `ModePicker narrow` and `StylePicker previewTitle="Players" previewButtons={["Sync", "Save"]}`; delete the copied `.mode-picker`, `.style-picker`, `.style-option`, `.style-preview`, `.preview-*` CSS.
-  `.page-root { overflow-y: auto }` in the app shell if the shell scrolls the page.
-- `Card`, `Tile` (`value`/`label`, order is now label then value; `hint` is a line below), `Field` (`.field-label` → `.label`; hint class `.hint`), `Pager`, `SortTh` (same props, `+ hint?`), `ErrorBox`, `Empty`, `Loading`, `Async`
-  (`state` = `useAsync` result), `Avatar` (same, `name, size`; colours now `--avatar-N`), `Chart` (identical) come from the package. `Dot({ id, label })` → `Dot({ color: serverColor(id), label: serverName(id) })`; `ServerDots`, `PlayerLink`, `Link`, `rowKey` (package has `rowKey`) stay or move as noted.
-- `ActivityLog`'s `ConnBadge` → `<ConnectionBadge status={…} />` (`"live" | "down" | "connecting"`). `SyncProgress` → `<Progress value={p.total ? p.done / p.total : undefined} label={…} />` (`.progress > div` → `.progress > .bar`).
-- `RangePicker` (presets + date inputs) is app-specific: build it with `Segmented` + `.range` for the date inputs (`input[type=date]` is styled by the library).
-- CSS: `.stats-table` → `.table`, `.stats-table .num` → `.table .num` (`.sort` buttons as before), `.err` → `.error-text`, `.ok` → `.success`, `.tab.active` is light raised, not green;
-  `.badge.running` uses `--warn` (was `#c9a400`), avatars use `--on-accent` (was `#fff`); `.section-title` is a small-caps label; `.tabs` is a raised tray (no `margin: auto`).
-  Inputs are `width: 100%` by default; inside `.toolbar`/`.range` they are `auto`. Keep the app-only CSS (`.sidebar`, `.nav-link`, `.server-*`, `.activity*`, `.geo`, …) and add `data-mode="dark" data-style="bedrock"` on `<html>` (or just rely on the defaults).
+Notes on moving an app to the library, and between versions, are in [MIGRATION.md](MIGRATION.md) (not part of the
+package).
 
 ## Development
 

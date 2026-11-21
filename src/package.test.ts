@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import * as lib from "./index";
 
 const root = resolve(import.meta.dir, "..");
 const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")) as {
@@ -70,5 +71,51 @@ describe("package exports", () => {
 			f.endsWith(".tsx"),
 		);
 		expect(tsx.length).toBeGreaterThan(5);
+	});
+
+	test("there is no ./components entry; the main entry has the components", () => {
+		expect(pkg.exports["./components"]).toBeUndefined();
+	});
+
+	test("the public entry leaves out what only the library itself needs", () => {
+		const internal = [
+			"events",
+			"subscribe",
+			"onConnection",
+			"RangePicker",
+			"TOAST_MS",
+			"clearToasts",
+			"dropIndex",
+			"insertIndex",
+			"niceMax",
+			"safeHref",
+			"parseInline",
+			"avatarColorIndex",
+			"csvCell",
+			"DEFAULT_MODE",
+			"DEFAULT_STYLE",
+			"fontSizeFor",
+			"formatEta",
+			"formatRemaining",
+			"formatShortTs",
+			"formatShortDate",
+			"parseTs",
+			"secsToHours",
+		];
+		for (const name of internal) expect(name in lib, name).toBe(false);
+		// And what the apps use is there.
+		for (const name of [
+			"createEventStream",
+			"dismissToast",
+			"toast",
+			"formatDuration",
+			"formatElapsed",
+
+			"toCsv",
+			"parseText",
+			"moveItem",
+			"moveFocus",
+		])
+			expect(name in lib, name).toBe(true);
 	});
 });

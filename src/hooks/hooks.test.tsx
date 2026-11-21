@@ -126,6 +126,32 @@ describe("useAsync", () => {
 		expect(h.out.state.data).toBe(1);
 	});
 
+	test("data and error are cleared when load becomes null", async () => {
+		let fail = false;
+		const h = harness(async (n) => {
+			if (fail) throw new Error("boom");
+			return `data ${n}`;
+		});
+		h.draw(1);
+		await wait(5);
+		expect(h.out.state.data).toBe("data 1");
+		h.draw(1, true);
+		await wait(5);
+		expect(h.out.state).toMatchObject({
+			data: null,
+			error: null,
+			loading: false,
+		});
+		// The same for an error.
+		fail = true;
+		h.draw(2);
+		await wait(5);
+		expect(h.out.state.error).toBe("boom");
+		h.draw(2, true);
+		await wait(5);
+		expect(h.out.state).toMatchObject({ data: null, error: null });
+	});
+
 	test("polls", async () => {
 		let calls = 0;
 		const h = harness(

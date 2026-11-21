@@ -21,6 +21,12 @@ type Drag = {
 
 let drag: Drag | null = null;
 
+/** Removes the click swallower of the last drag, if it is still waiting for its click. */
+let releaseClick: (() => void) | null = null;
+
+/** The swallower waits at most this long (ms) for a click that may never come (touch). */
+const SWALLOW_MAX_MS = 500;
+
 function knobTravel(input: HTMLInputElement): number {
 	const knob = Number.parseFloat(getComputedStyle(input, "::before").width);
 	return Math.max(0, input.getBoundingClientRect().width - (knob || 0));
@@ -43,12 +49,20 @@ function end(e: PointerEvent, cancelled: boolean) {
 	if (cancelled) return;
 	setChecked(input, at > travel / 2);
 	// The click that follows the release would toggle it again.
+	releaseClick?.();
 	const swallow = (c: MouseEvent) => {
 		c.preventDefault();
 		c.stopPropagation();
+		release();
 	};
-	window.addEventListener("click", swallow, { capture: true, once: true });
-	setTimeout(() => window.removeEventListener("click", swallow, true));
+	const timer = setTimeout(() => release(), SWALLOW_MAX_MS);
+	const release = () => {
+		clearTimeout(timer);
+		window.removeEventListener("click", swallow, true);
+		if (releaseClick === release) releaseClick = null;
+	};
+	releaseClick = release;
+	window.addEventListener("click", swallow, true);
 }
 
 /**
@@ -57,6 +71,8 @@ function end(e: PointerEvent, cancelled: boolean) {
  */
 export function initToggleDrag(selector = "input.switch"): () => void {
 	const down = (e: PointerEvent) => {
+		// A new press: whatever click the last drag was waiting for is not coming.
+		releaseClick?.();
 		const input = e.target;
 		if (
 			!(input instanceof HTMLInputElement) ||
@@ -98,6 +114,7 @@ export function initToggleDrag(selector = "input.switch"): () => void {
 	document.addEventListener("pointerup", up);
 	document.addEventListener("pointercancel", cancel);
 	return () => {
+		releaseClick?.();
 		document.removeEventListener("pointerdown", down);
 		document.removeEventListener("pointermove", move);
 		document.removeEventListener("pointerup", up);

@@ -9,8 +9,7 @@ const LABELS: Record<ConnectionStatus, string> = {
 const TITLES: Record<ConnectionStatus, string> = {
 	live: "Updates arrive as they happen.",
 	down: "Not connected to the live stream; refreshing every few seconds instead.",
-	connecting:
-		"Not connected to the live stream; refreshing every few seconds instead.",
+	connecting: "Connecting to the live stream…",
 };
 
 /** The state of a live stream (see createEventStream) as a dot and a word. */

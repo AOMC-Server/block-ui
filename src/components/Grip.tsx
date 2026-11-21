@@ -1,8 +1,16 @@
-import { type CrossDrop, startReorder } from "./reorder";
+import { useLayoutEffect, useRef } from "preact/hooks";
+import { type CrossDrop, startReorder } from "../lib/reorder";
+
+/** How long after a key move the row may still take the focus back (the list may re-render later). */
+const REFOCUS_MS = 1000;
+
+/** The row that should get the focus once it has rendered in its new place. */
+let refocus: { id: string; until: number } | null = null;
 
 /**
  * The handle of a list row that can be reordered: drag it, or focus it and press the up and down
- * arrow keys. `id` identifies the row so that focus can go back to it after the list re-renders.
+ * arrow keys. `id` identifies the row so that focus can go back to it after the list re-renders,
+ * even when the row is re-created in its new place.
  */
 export function Grip(props: {
 	id: string;
@@ -16,11 +24,21 @@ export function Grip(props: {
 	itemSelector?: string;
 }) {
 	const { id, index, count, onMove } = props;
+	const button = useRef<HTMLButtonElement>(null);
+
+	useLayoutEffect(() => {
+		if (refocus?.id !== id) return;
+		const wanted = refocus.until > Date.now();
+		refocus = null;
+		if (wanted) button.current?.focus();
+	});
+
 	return (
 		<button
 			type="button"
 			class="plain grip"
 			data-grip={id}
+			ref={button}
 			aria-label={`Move ${props.label}`}
 			title={
 				props.cross
@@ -44,13 +62,8 @@ export function Grip(props: {
 				if (to < 0 || to >= count) return;
 				e.preventDefault();
 				e.stopPropagation();
+				refocus = { id, until: Date.now() + REFOCUS_MS };
 				onMove(index, to);
-				// The row is re-created in its new place; keep the keyboard on it.
-				setTimeout(
-					() =>
-						document.querySelector<HTMLElement>(`[data-grip="${id}"]`)?.focus(),
-					0,
-				);
 			}}
 		>
 			<span class="grip-dots" aria-hidden="true" />

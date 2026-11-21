@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { dropIndex, insertIndex, moveItem, renumber } from "./reorder";
+import { moveItem, renumber } from "./reorder";
+import { dropIndex, insertIndex } from "./reorderMath";
 
 describe("moveItem", () => {
 	test("moves an item without touching the original", () => {

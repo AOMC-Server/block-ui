@@ -1,4 +1,6 @@
 import type { ComponentChildren } from "preact";
+import { useEffect, useRef } from "preact/hooks";
+import { cx } from "../lib/cx";
 
 export type PanelResize = {
 	/** The current width in pixels. */
@@ -17,30 +19,49 @@ export type PanelResize = {
 function ResizeHandle(props: PanelResize) {
 	const { width, min, max, onChange } = props;
 	const right = props.edge === "right";
-	const drag = (e: PointerEvent) => {
-		const panel = (e.currentTarget as HTMLElement).parentElement;
+	/** The drag in progress: the pointer, the panel's box when it began, the width so far. */
+	const drag = useRef<{
+		pointerId: number;
+		box: DOMRect;
+		latest: number;
+	} | null>(null);
+
+	const finish = () => {
+		const d = drag.current;
+		if (!d) return;
+		drag.current = null;
+		document.body.classList.remove("resizing");
+		onChange(d.latest, true);
+	};
+	useEffect(
+		() => () => {
+			if (drag.current) document.body.classList.remove("resizing");
+			drag.current = null;
+		},
+		[],
+	);
+
+	const start = (e: PointerEvent) => {
+		const handle = e.currentTarget as HTMLElement;
+		const panel = handle.parentElement;
 		if (e.button !== 0 || !panel) return;
 		e.preventDefault();
-		const box = panel.getBoundingClientRect();
-		let latest = width;
-		const move = (m: PointerEvent) => {
-			latest = Math.min(
-				max,
-				Math.max(min, right ? m.clientX - box.left : box.right - m.clientX),
-			);
-			onChange(latest, false);
+		handle.setPointerCapture(e.pointerId);
+		drag.current = {
+			pointerId: e.pointerId,
+			box: panel.getBoundingClientRect(),
+			latest: width,
 		};
-		const done = () => {
-			removeEventListener("pointermove", move);
-			removeEventListener("pointerup", done);
-			removeEventListener("pointercancel", done);
-			document.body.classList.remove("resizing");
-			onChange(latest, true);
-		};
-		addEventListener("pointermove", move);
-		addEventListener("pointerup", done);
-		addEventListener("pointercancel", done);
 		document.body.classList.add("resizing");
+	};
+	const move = (e: PointerEvent) => {
+		const d = drag.current;
+		if (!d || e.pointerId !== d.pointerId) return;
+		d.latest = Math.min(
+			max,
+			Math.max(min, right ? e.clientX - d.box.left : d.box.right - e.clientX),
+		);
+		onChange(d.latest, false);
 	};
 	const key = (e: KeyboardEvent) => {
 		const step = (e.shiftKey ? 80 : 20) * (right ? -1 : 1);
@@ -58,7 +79,7 @@ function ResizeHandle(props: PanelResize) {
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a focusable splitter, which <hr> cannot be
 		<div
-			class={`panel-resize ${right ? "right" : ""}`}
+			class={cx("panel-resize", right && "right")}
 			role="separator"
 			aria-orientation="vertical"
 			aria-label="Resize panel"
@@ -67,7 +88,11 @@ function ResizeHandle(props: PanelResize) {
 			aria-valuenow={width}
 			tabIndex={0}
 			title="Drag to resize (double-click to reset)"
-			onPointerDown={drag}
+			onPointerDown={start}
+			onPointerMove={move}
+			onPointerUp={finish}
+			onPointerCancel={finish}
+			onLostPointerCapture={finish}
 			onDblClick={props.onReset}
 			onKeyDown={key}
 		/>
@@ -92,13 +117,13 @@ export function Panel(props: {
 	children: ComponentChildren;
 }) {
 	return (
-		<aside class={`panel ${props.class ?? ""}`} aria-label={props.title}>
+		<aside class={cx("panel", props.class)} aria-label={props.title}>
 			{props.resize && <ResizeHandle {...props.resize} />}
 			<header class="panel-head">
 				<h2>{props.title}</h2>
 				<button
 					type="button"
-					class={`btn small ${props.closeText ? "" : "close"}`}
+					class={cx("btn small", !props.closeText && "close")}
 					aria-label="Close"
 					onClick={props.onClose}
 				>

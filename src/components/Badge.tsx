@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { cx } from "../lib/cx";
 
 export type BadgeKind = "ok" | "warn" | "error" | "running";
 
@@ -9,7 +10,7 @@ export function Badge(props: {
 	children: ComponentChildren;
 }) {
 	return (
-		<span class={`badge ${props.kind ?? ""}`} title={props.title}>
+		<span class={cx("badge", props.kind)} title={props.title}>
 			{props.children}
 		</span>
 	);

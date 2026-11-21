@@ -131,6 +131,76 @@ describe("createEventStream", () => {
 		expect(late).toHaveLength(1);
 	});
 
+	test("one subscription object used for two subscribes is two followers", async () => {
+		const t = setup();
+		const shared: unknown[] = [];
+		const subscription = { onEvent: (d: unknown) => shared.push(d) };
+		t.stream.subscribe("layers:2", subscription);
+		await wait(10);
+		const data = { n: 1 };
+		t.sources[0]?.send(snap("layers:2", "a.0", data));
+		t.sources[0]?.break();
+		await wait(0);
+		// The same object again, later: it is a new follower, with a snapshot of its own to get.
+		t.stream.subscribe("layers:2", subscription);
+		await wait(20);
+		t.sources[1]?.send(snap("layers:2", "a.0", data));
+		// The first follower had it already; the second is new to it.
+		expect(shared).toHaveLength(2);
+	});
+
+	test("a frame that is not JSON is dropped, and the stream goes on", async () => {
+		const t = setup();
+		const got: unknown[] = [];
+		t.stream.subscribe("layers:2", { onEvent: (d) => got.push(d) });
+		await wait(10);
+		const source = t.current;
+		const status: string[] = [];
+		t.stream.onStatus((s) => status.push(s));
+		expect(() =>
+			source.onmessage?.({ data: "<html>502</html>" } as MessageEvent),
+		).not.toThrow();
+		expect(() =>
+			source.onmessage?.({ data: "null" } as MessageEvent),
+		).not.toThrow();
+		expect(() =>
+			source.onmessage?.({ data: "42" } as MessageEvent),
+		).not.toThrow();
+		expect(got).toEqual([]);
+		// Garbage is not a sign of life.
+		expect(t.stream.healthy).toBe(false);
+		expect(status).toEqual([]);
+		source.send(event("layers:2", "a.1", { n: 1 }));
+		expect(got).toEqual([{ n: 1 }]);
+		expect(t.stream.healthy).toBe(true);
+	});
+
+	test("events are not serialised to look for repeats; only a snapshot with the same seq is", async () => {
+		const t = setup();
+		const got: unknown[] = [];
+		t.stream.subscribe("layers:2", { onEvent: (d) => got.push(d) });
+		await wait(10);
+		const original = JSON.stringify;
+		let calls = 0;
+		JSON.stringify = ((...args: Parameters<typeof JSON.stringify>) => {
+			calls++;
+			return original(...args);
+		}) as typeof JSON.stringify;
+		try {
+			t.current.send(event("layers:2", "a.1", { n: 1 }));
+			t.current.send(event("layers:2", "a.1", { n: 1 }));
+			t.current.send(snap("layers:2", "a.2", { n: 2 }));
+			// `send` itself stringifies the envelope for the fake wire: one call each.
+			expect(calls).toBe(3);
+			t.current.send(snap("layers:2", "a.2", { n: 2 }));
+			expect(calls).toBe(3 + 1 + 2);
+		} finally {
+			JSON.stringify = original;
+		}
+		// Two events with the same seq and data are both delivered; the repeated snapshot is not.
+		expect(got).toHaveLength(3);
+	});
+
 	test("a final event ends the topic, and it can be followed again", async () => {
 		const t = setup();
 		const got: unknown[] = [];

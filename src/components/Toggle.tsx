@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { cx } from "../lib/cx";
 
 /**
  * A checkbox drawn as a slide toggle (`input.switch`). By default a settings row: the label and
@@ -24,7 +25,12 @@ export function Toggle(props: {
 }) {
 	return (
 		<label
-			class={`${props.inline ? "check" : "toggle"} ${props.inline && props.bold ? "bold" : ""} ${props.disabled ? "disabled" : ""} ${props.class ?? ""}`}
+			class={cx(
+				props.inline ? "check" : "toggle",
+				props.inline && props.bold && "bold",
+				props.disabled && "disabled",
+				props.class,
+			)}
 			title={props.title}
 		>
 			<input

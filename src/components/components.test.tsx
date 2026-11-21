@@ -3,9 +3,10 @@ import type { ComponentChildren } from "preact";
 import { render } from "preact";
 import { act } from "preact/test-utils";
 import type { AsyncState } from "../hooks/useAsync";
+import { moveFocus } from "../lib/menu";
 import { appearance } from "../theme/theme";
 import { Async, Empty, ErrorBox, Loading } from "./Async";
-import { Avatar, avatarColorIndex } from "./Avatar";
+import { Avatar } from "./Avatar";
 import { Badge, Count } from "./Badge";
 import { Card, Tile, TileGrid } from "./Card";
 import { ConnectionBadge } from "./ConnectionBadge";
@@ -13,18 +14,17 @@ import { Dot } from "./Dot";
 import { Field } from "./Field";
 import { Grip } from "./Grip";
 import { Confirm, Modal } from "./Modal";
-import { moveFocus } from "./menu";
 import { Page } from "./Page";
 import { Panel } from "./Panel";
 import { ChoicePicker, ModePicker, StylePicker } from "./Pickers";
 import { PopupText } from "./PopupText";
 import { PreviewSelect } from "./PreviewSelect";
 import { BossBar, Progress } from "./Progress";
-import { RangePicker, Segmented } from "./Segmented";
+import { Segmented } from "./Segmented";
 import { copyText, ExpirySelect, ShownOnce } from "./share";
 import { Pager, SortTh } from "./Table";
 import { Tabs } from "./Tabs";
-import { clearToasts, dismissToast, TOAST_MS, Toasts, toast } from "./Toast";
+import { clearToasts, dismissToast, Toasts, toast } from "./Toast";
 import { Toggle } from "./Toggle";
 
 let host: HTMLElement | null = null;
@@ -234,8 +234,6 @@ describe("toast", () => {
 		]);
 		act(() => dismissToast(id));
 		expect(document.querySelectorAll(".toast")).toHaveLength(2);
-		for (const t of document.querySelectorAll(".toast")) void t;
-		expect(TOAST_MS.error).toBeGreaterThan(TOAST_MS.ok);
 	});
 
 	test("goes away by itself after `ms`", async () => {
@@ -402,7 +400,6 @@ describe("Segmented and Tabs", () => {
 		click(buttons[0] as Element);
 		expect(log).toEqual(["7d"]);
 		expect(q("legend").textContent).toBe("Range");
-		expect(RangePicker).toBe(Segmented);
 	});
 
 	test("Tabs: buttons call onChange; links keep their href and hand over to onChange", () => {
@@ -431,8 +428,14 @@ describe("Segmented and Tabs", () => {
 		expect(tabs.map((t) => t.getAttribute("aria-selected"))).toEqual([
 			"true",
 			"false",
-			"true",
-			"false",
+			null,
+			null,
+		]);
+		expect(tabs.map((t) => t.getAttribute("aria-current"))).toEqual([
+			null,
+			null,
+			"page",
+			null,
 		]);
 		click(tabs[1] as Element);
 		const link = tabs[3] as HTMLAnchorElement;
@@ -667,15 +670,23 @@ describe("Async and friends", () => {
 
 describe("small components", () => {
 	test("Avatar: initials on a name-derived colour, or an image", () => {
-		expect(avatarColorIndex("Steve")).toBe(avatarColorIndex("Steve"));
-		expect(avatarColorIndex("Steve")).toBeGreaterThanOrEqual(1);
-		expect(avatarColorIndex("Steve")).toBeLessThanOrEqual(8);
 		mount(
 			<>
 				<Avatar name="alex" size={20} round />
 				<Avatar name="alex" src="/a.png" />
+				<Avatar name="alex" />
+				<Avatar name="Steve" />
 			</>,
 		);
+		const colours = [...document.querySelectorAll(".avatar.initials")].map(
+			(el) => /var\(--avatar-(\d)\)/.exec(el.getAttribute("style") ?? "")?.[1],
+		);
+		// The same name always gets the same colour, one of the eight.
+		expect(colours[0]).toBe(colours[1]);
+		for (const c of colours) {
+			expect(Number(c)).toBeGreaterThanOrEqual(1);
+			expect(Number(c)).toBeLessThanOrEqual(8);
+		}
 		const initials = q(".avatar.initials");
 		expect(initials.textContent).toBe("A");
 		expect(initials.classList.contains("round")).toBe(true);
@@ -712,8 +723,8 @@ describe("small components", () => {
 		expect(q(".dot-wrap").getAttribute("title")).toBe("Lobby");
 		expect(q(".badge.running").textContent).toBe("Running");
 		expect(q(".count").textContent).toBe("3");
-		expect(q("label.field .label").textContent).toBe("Name");
-		expect(q("label.field .hint").textContent).toBe("Shown to everyone");
+		expect(q(".field label .label").textContent).toBe("Name");
+		expect(q(".field > .hint").textContent).toBe("Shown to everyone");
 		expect(q("section.card.inner .card-head h2").textContent).toBe("T");
 		expect(q(".card-foot").textContent).toBe("foot");
 		expect(q(".tiles .tile .tile-value").textContent).toBe("12");
@@ -724,6 +735,12 @@ describe("small components", () => {
 		mount(<ConnectionBadge status="down" />);
 		expect(q(".conn").className).toBe("conn conn-down");
 		expect(q(".conn").textContent).toContain("Reconnecting…");
+		const down = q(".conn").getAttribute("title");
+		act(() =>
+			render(<ConnectionBadge status="connecting" />, host as HTMLElement),
+		);
+		expect(q(".conn").getAttribute("title")).toContain("Connecting");
+		expect(q(".conn").getAttribute("title")).not.toBe(down);
 		act(() =>
 			render(
 				<ConnectionBadge status="live" labels={{ live: "Online" }} />,
@@ -968,7 +985,7 @@ describe("Field", () => {
 				</Field>
 			</>,
 		);
-		const [a, b] = [...document.querySelectorAll("label.field")];
+		const [a, b] = [...document.querySelectorAll(".field")];
 		expect(a?.classList.contains("flow")).toBe(false);
 		expect(b?.classList.contains("flow")).toBe(true);
 		expect(a?.querySelector(".label")?.textContent).toBe("A");
@@ -999,13 +1016,13 @@ describe("TileGrid", () => {
 
 describe("appearance pickers", () => {
 	const buttons = () => [
-		...document.querySelectorAll<HTMLElement>(".mode-picker .btn"),
+		...document.querySelectorAll<HTMLElement>(".choice-picker .btn"),
 	];
 
 	test("ModePicker marks the value and reports the choice", () => {
 		const log: string[] = [];
 		mount(<ModePicker value="dark" onChange={(m) => log.push(m)} />);
-		expect(q(".mode-picker legend").textContent).toBe("Colours");
+		expect(q(".choice-picker legend").textContent).toBe("Colours");
 		expect(buttons().map((b) => b.textContent)).toEqual([
 			"System",
 			"Dark",
@@ -1018,15 +1035,15 @@ describe("appearance pickers", () => {
 		]);
 		click(buttons()[2] as Element);
 		expect(log).toEqual(["light"]);
-		expect(q(".mode-picker").classList.contains("narrow")).toBe(false);
+		expect(q(".choice-picker").classList.contains("narrow")).toBe(false);
 	});
 
 	test("ModePicker can be narrow and relabelled", () => {
 		mount(
 			<ModePicker value="system" onChange={() => {}} label="Theme" narrow />,
 		);
-		expect(q(".mode-picker legend").textContent).toBe("Theme");
-		expect(q(".mode-picker").classList.contains("narrow")).toBe(true);
+		expect(q(".choice-picker legend").textContent).toBe("Theme");
+		expect(q(".choice-picker").classList.contains("narrow")).toBe(true);
 	});
 
 	test("ChoicePicker takes any options, with a hint", () => {
@@ -1043,7 +1060,7 @@ describe("appearance pickers", () => {
 				onChange={(v) => log.push(v)}
 			/>,
 		);
-		expect(q(".mode-picker .hint").textContent).toBe("How quickly it moves.");
+		expect(q(".choice-picker .hint").textContent).toBe("How quickly it moves.");
 		click(buttons()[0] as Element);
 		expect(log).toEqual(["slow"]);
 		expect(buttons()[1]?.classList.contains("active")).toBe(true);

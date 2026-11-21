@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { cx } from "../lib/cx";
 
 /**
  * A progress bar. `value` is the fraction done (0 to 1); leave it out for an animated bar when
@@ -24,7 +25,7 @@ export function Progress(props: {
 			aria-valuenow={known ? pct : undefined}
 		>
 			<div
-				class={`bar ${known ? "" : "indeterminate"}`}
+				class={cx("bar", !known && "indeterminate")}
 				style={known ? { width: `${pct}%` } : undefined}
 			/>
 		</div>
@@ -53,10 +54,10 @@ export function BossBar(props: {
 	onAction?: () => void;
 }) {
 	return (
-		<div class={`bossbar ${props.color}`} role="status">
+		<div class={cx("bossbar", props.color)} role="status">
 			<div class="bossbar-main">
 				<div class="bossbar-title">{props.title}</div>
-				<div class={`bossbar-track ${props.color}`}>
+				<div class={cx("bossbar-track", props.color)}>
 					<span
 						style={{
 							width: `${Math.round(Math.min(1, Math.max(0, props.fill)) * 100)}%`,

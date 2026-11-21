@@ -1,5 +1,5 @@
 import { Fragment } from "preact";
-import { parseText } from "./markdown";
+import { parseText } from "../lib/markdown";
 
 /** Renders popup text through the markup subset as Preact elements; no HTML is ever injected. */
 export function PopupText(props: { text: string }) {

@@ -1,35 +1,50 @@
 /*
- * Formatting helpers shared by the apps. Names all start with `format` except the parsers.
- *
- * Two conventions existed for some of them, and both are kept, under different names or options:
- * - bytes: `formatBytes(n)` is binary with IEC labels ("1.5 KiB"); `formatBytes(n, "kb")` is
- *   also binary (1024) but labelled "KB"/"MB" with more decimals ("2.00 KB").
- * - durations: `formatDuration` is coarse (days/hours/minutes), `formatElapsed` is precise
- *   (hours/minutes/seconds).
+ * Formatting helpers. Conventions:
+ * - Names start with `format`; the exception is `toYmd`.
+ * - Numbers, dates and times follow the user's locale. `toYmd` is always ISO and UTC.
+ * - Bytes are binary (1024 per step); `style` picks the labels: IEC ("KiB") or "kb" ("KB").
+ * - Durations are given in seconds and come in two forms: `formatDuration` is coarse (two units
+ *   at most, minutes at the finest), `formatElapsed` is precise (down to seconds).
+ * - A missing value is shown as "-" (or "never" where that is the meaning).
  */
 
-const MINUTE = 60_000;
+const formats = new Map<string, Intl.NumberFormat>();
 
-const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-const nf1 = new Intl.NumberFormat("en-US", {
-	minimumFractionDigits: 1,
-	maximumFractionDigits: 1,
-});
+/** A cached number format of the user's locale. */
+function numberFormat(
+	options: Intl.NumberFormatOptions = {},
+): Intl.NumberFormat {
+	const key = JSON.stringify(options);
+	let format = formats.get(key);
+	if (!format) {
+		format = new Intl.NumberFormat(undefined, options);
+		formats.set(key, format);
+	}
+	return format;
+}
 
-/** A number in the user's locale ("12,345" or "12.345"). */
-export const formatNumber = (n: number): string => n.toLocaleString();
+const fixed = (digits: number): Intl.NumberFormat =>
+	numberFormat({
+		minimumFractionDigits: digits,
+		maximumFractionDigits: digits,
+	});
 
-/** A whole number, always in en-US grouping ("12,345"). */
-export const formatInt = (n: number): string => nf0.format(n);
+/** A number with grouping and up to three decimals: "12,345.5". */
+export const formatNumber = (n: number): string => numberFormat().format(n);
+
+/** A whole number, rounded: "12,345". */
+export const formatInt = (n: number): string => fixed(0).format(n);
 
 /** Hours with one decimal: "7,153.2h". */
-export const formatHours = (h: number): string => `${nf1.format(h)}h`;
-
-export const secsToHours = (secs: number): number => secs / 3600;
+export const formatHours = (h: number): string => `${fixed(1).format(h)}h`;
 
 /** A fraction as a percentage with one decimal: 0.1234 -> "12.3%". */
 export const formatPercent = (fraction: number): string =>
-	`${(fraction * 100).toFixed(1)}%`;
+	numberFormat({
+		style: "percent",
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 1,
+	}).format(fraction);
 
 export type ByteStyle = "iec" | "kb";
 
@@ -44,7 +59,7 @@ const BYTE_UNITS: Record<ByteStyle, readonly string[]> = {
  * - "kb": "512 B", "2.00 KB", "5.00 MB"; two decimals below 10, one below 100, none above.
  */
 export function formatBytes(bytes: number, style: ByteStyle = "iec"): string {
-	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024) return `${formatInt(bytes)} B`;
 	const units = BYTE_UNITS[style];
 	let value = bytes / 1024;
 	let unit = 0;
@@ -62,46 +77,29 @@ export function formatBytes(bytes: number, style: ByteStyle = "iec"): string {
 				: value >= 10
 					? 1
 					: 2;
-	return `${value.toFixed(digits)} ${units[unit]}`;
+	return `${fixed(digits).format(value)} ${units[unit]}`;
 }
 
-/** Coarse: "3d 4h", "2h 5m", "7m". */
+/** Coarse: "3d 4h", "3d", "2h 5m", "2h", "7m" (under a minute: "0m"). */
 export function formatDuration(seconds: number): string {
-	const d = Math.floor(seconds / 86400);
-	const h = Math.floor((seconds % 86400) / 3600);
-	const m = Math.floor((seconds % 3600) / 60);
-	if (d > 0) return `${d}d ${h}h`;
-	if (h > 0) return `${h}h ${m}m`;
+	const total = Math.max(0, Math.floor(seconds));
+	const d = Math.floor(total / 86400);
+	const h = Math.floor((total % 86400) / 3600);
+	const m = Math.floor((total % 3600) / 60);
+	const unit = (n: number, label: string) => (n > 0 ? ` ${n}${label}` : "");
+	if (d > 0) return `${d}d${unit(h, "h")}`;
+	if (h > 0) return `${h}h${unit(m, "m")}`;
 	return `${m}m`;
 }
 
 /** Precise: "1h 05m", "4m 12s", "9s". */
-export function formatElapsed(secs: number): string {
-	const s = Math.max(0, Math.round(secs));
+export function formatElapsed(seconds: number): string {
+	const s = Math.max(0, Math.round(seconds));
 	const h = Math.floor(s / 3600);
 	const m = Math.floor((s % 3600) / 60);
 	if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
 	if (m > 0) return `${m}m ${String(s % 60).padStart(2, "0")}s`;
 	return `${s}s`;
-}
-
-/** "3h", "25m": how long until `ms` from now, roughly. */
-export function formatRemaining(ms: number): string {
-	const minutes = Math.max(Math.ceil(ms / MINUTE), 1);
-	if (minutes < 60) return `${minutes}m`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 48) return `${hours}h`;
-	return `${Math.floor(hours / 24)}d`;
-}
-
-/** "45 s", "3 min 20 s", "1 h 5 min": how long something still takes, for estimates. */
-export function formatEta(seconds: number): string {
-	const total = Math.max(1, Math.ceil(seconds));
-	if (total < 60) return `${total} s`;
-	const m = Math.floor(total / 60);
-	if (m < 10) return `${m} min ${total % 60} s`;
-	if (m < 60) return `${m} min`;
-	return `${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
 /** A job's progress as text: what it is doing, and how far it is where that is known. */
@@ -111,7 +109,7 @@ export function formatProgress(
 	total?: number | null,
 ): string {
 	return total
-		? `${message}: ${(done ?? 0).toLocaleString()} of ${total.toLocaleString()}`
+		? `${message}: ${formatNumber(done ?? 0)} of ${formatNumber(total)}`
 		: `${message}…`;
 }
 
@@ -128,24 +126,16 @@ export function formatDay(ms: number): string {
 	return new Date(ms).toLocaleDateString(undefined, { dateStyle: "medium" });
 }
 
-/** Parses "YYYY-MM-DD HH:MM:SS.mmm" (UTC) or an ISO string. */
-export function parseTs(ts: string): Date {
-	if (/[zZ]|[+-]\d\d:?\d\d$/.test(ts)) return new Date(ts);
-	return new Date(`${ts.replace(" ", "T")}Z`);
-}
-
-/** "2026-01-02 03:04" from a log timestamp. */
-export const formatShortTs = (ts: string | null): string =>
-	ts ? ts.slice(0, 16) : "-";
-
-/** "2026-01-02" from a log timestamp. */
-export const formatShortDate = (ts: string | null): string =>
-	ts ? ts.slice(0, 10) : "-";
-
-/** "just now", "30m ago", "3d ago" for a timestamp that `parseTs` understands. */
-export function formatRelative(ts: string | null, now = Date.now()): string {
-	if (!ts) return "never";
-	const t = parseTs(ts).getTime();
+/**
+ * How long ago a time was: "just now", "30m ago", "3d ago". `time` is a Date or milliseconds;
+ * `null` is "never", an invalid time "-", one after `now` "in the future".
+ */
+export function formatRelative(
+	time: Date | number | null | undefined,
+	now = Date.now(),
+): string {
+	if (time === null || time === undefined) return "never";
+	const t = typeof time === "number" ? time : time.getTime();
 	if (Number.isNaN(t)) return "-";
 	const diff = Math.round((now - t) / 1000);
 	if (diff < 0) return "in the future";

@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useId } from "preact/hooks";
+import { cx } from "../lib/cx";
 import {
 	MODES,
 	type ModeChoice,
@@ -24,7 +25,7 @@ export function ChoicePicker<T extends string>(props: {
 }) {
 	return (
 		<fieldset
-			class={`mode-picker ${props.narrow ? "narrow" : ""} ${props.class ?? ""}`}
+			class={cx("choice-picker", props.narrow && "narrow", props.class)}
 		>
 			<legend class="label">{props.label}</legend>
 			<div class="segmented">
@@ -32,7 +33,7 @@ export function ChoicePicker<T extends string>(props: {
 					<button
 						key={o.id}
 						type="button"
-						class={`btn ${o.id === props.value ? "active" : ""}`}
+						class={cx("btn", o.id === props.value && "active")}
 						aria-pressed={o.id === props.value}
 						onClick={() => props.onChange(o.id)}
 					>
@@ -88,12 +89,12 @@ export function StylePicker(props: {
 	const [first, second] = props.previewButtons ?? ["Cancel", "OK"];
 	const scope = paletteScope(props.palette);
 	return (
-		<fieldset class={`style-picker ${props.class ?? ""}`}>
+		<fieldset class={cx("style-picker", props.class)}>
 			<legend class="label">{props.label ?? "Style"}</legend>
 			{STYLES.map((st) => (
 				<label
 					key={st.id}
-					class={`style-option ${st.id === props.value ? "selected" : ""}`}
+					class={cx("style-option", st.id === props.value && "selected")}
 				>
 					<input
 						class="visually-hidden"

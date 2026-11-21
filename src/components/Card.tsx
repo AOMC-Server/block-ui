@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { cx } from "../lib/cx";
 
 /** A raised surface with an optional title bar (title and actions). `inner` for a card inside another surface. */
 export function Card(props: {
@@ -10,7 +11,7 @@ export function Card(props: {
 	children: ComponentChildren;
 }) {
 	return (
-		<section class={`card ${props.inner ? "inner" : ""} ${props.class ?? ""}`}>
+		<section class={cx("card", props.inner && "inner", props.class)}>
 			{(props.title || props.actions) && (
 				<div class="card-head">
 					<h2>{props.title}</h2>
@@ -55,7 +56,7 @@ export function TileGrid(props: {
 }) {
 	return (
 		<div
-			class={`tiles ${props.plain ? "plain" : ""}`}
+			class={cx("tiles", props.plain && "plain")}
 			style={props.min ? { "--tile-min": `${props.min}px` } : undefined}
 		>
 			{props.tiles.map((t) => (

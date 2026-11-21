@@ -1,5 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef } from "preact/hooks";
+import { cx } from "../lib/cx";
+import { isDragging } from "../lib/dragState";
 
 /** Open modals, oldest first; only the last one reacts to the keyboard. */
 const stack: symbol[] = [];
@@ -28,7 +30,8 @@ export type ModalProps = {
 /**
  * Centered dialog with a title bar, over a dimmed backdrop. Focus moves into it, stays inside
  * while Tab is used, and goes back where it was on close. Escape closes the topmost one only,
- * before anything else sees the key.
+ * before anything else sees the key, unless a list drag inside it is in progress (that drag
+ * takes the key and cancels).
  */
 export function Modal(props: ModalProps) {
 	const dialog = useRef<HTMLDivElement>(null);
@@ -52,6 +55,8 @@ export function Modal(props: ModalProps) {
 		const onKey = (e: KeyboardEvent) => {
 			if (stack.at(-1) !== id) return;
 			if (e.key === "Escape") {
+				// A list drag inside the dialog takes the key to cancel itself.
+				if (isDragging()) return;
 				e.stopImmediatePropagation();
 				onClose.current();
 				return;
@@ -92,7 +97,7 @@ export function Modal(props: ModalProps) {
 			}}
 		>
 			<div
-				class={`modal ${props.wide ? "wide" : ""} ${props.class ?? ""}`}
+				class={cx("modal", props.wide && "wide", props.class)}
 				role="dialog"
 				aria-modal="true"
 				aria-label={props.title}
@@ -148,7 +153,7 @@ export function Confirm(props: {
 					</button>
 					<button
 						type="button"
-						class={`btn ${props.danger ? "danger" : "primary"}`}
+						class={cx("btn", props.danger ? "danger" : "primary")}
 						disabled={props.busy}
 						onClick={props.onConfirm}
 					>

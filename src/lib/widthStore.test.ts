@@ -43,6 +43,13 @@ describe("createWidthStore", () => {
 		expect(createWidthStore(options).width.value).toBe(512);
 		localStorage.setItem("w", "10");
 		expect(createWidthStore(options).width.value).toBe(320);
+		// A saved width from a wider window is brought back inside the maximum.
+		localStorage.setItem("w", "5000");
+		expect(createWidthStore(options).width.value).toBe(900);
+		localStorage.setItem("w", "5000");
+		expect(createWidthStore({ ...options, max: 600 }).width.value).toBe(600);
+		localStorage.setItem("w", "400.6");
+		expect(createWidthStore(options).width.value).toBe(401);
 		localStorage.setItem("w", "junk");
 		expect(createWidthStore(options).width.value).toBe(400);
 		localStorage.clear();

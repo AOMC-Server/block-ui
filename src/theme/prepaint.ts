@@ -1,4 +1,5 @@
-import { DEFAULT_MODE, DEFAULT_STYLE, STYLES } from "./theme";
+import { DEFAULT_MODE, DEFAULT_STYLE } from "./defaults";
+import { STYLES } from "./theme";
 
 /** What the saved appearance (read by `reader`) may contain. Anything invalid is ignored. */
 export type SavedAppearance = {

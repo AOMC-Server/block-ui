@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { cx } from "../lib/cx";
 
 /**
  * A numeric (or any) table header that sorts by its column when clicked. `dir` is the direction
@@ -25,7 +26,7 @@ export function SortTh(props: {
 		>
 			<button
 				type="button"
-				class={`plain sort ${active ? "active" : ""}`}
+				class={cx("plain sort", active && "active")}
 				title={props.hint}
 				onClick={() => props.onSort(props.col)}
 			>

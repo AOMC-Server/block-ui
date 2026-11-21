@@ -1,7 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { parseInline, parseText, safeHref } from "./markdown";
+import { parseText } from "./markdown";
 
-describe("safeHref", () => {
+/** One line, as its parts. */
+const parseInline = (line: string) => parseText(line)[0] ?? [];
+
+/** The href that a link to `url` gets, or null when it stays plain text. */
+const safeHref = (url: string) => {
+	const part = parseInline(`[x](${url})`)[0];
+	return part?.kind === "link" ? part.href : null;
+};
+
+describe("links", () => {
 	test("allows http and https only", () => {
 		expect(safeHref("https://example.com/a?b=1")).toBe(
 			"https://example.com/a?b=1",

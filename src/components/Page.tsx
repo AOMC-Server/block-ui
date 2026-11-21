@@ -1,11 +1,12 @@
-import type { ComponentChildren, VNode } from "preact";
+import { type ComponentChildren, isValidElement } from "preact";
+import { cx } from "../lib/cx";
 
 export type BackLink = { href: string; label: string };
 
 const isBackLink = (back: unknown): back is BackLink =>
 	typeof back === "object" &&
 	back !== null &&
-	!("props" in back) &&
+	!isValidElement(back) &&
 	typeof (back as BackLink).href === "string";
 
 /**
@@ -29,23 +30,21 @@ export function Page(props: {
 }) {
 	const { back } = props;
 	return (
-		<div
-			class={`page-root ${props.embedded ? "embedded" : ""} ${props.class ?? ""}`}
-		>
+		<div class={cx("page-root", props.embedded && "embedded", props.class)}>
 			<header class="page-head">
 				{isBackLink(back) ? (
 					<a class="btn small" href={back.href}>
 						← {back.label}
 					</a>
 				) : (
-					(back as VNode | undefined)
+					(back as ComponentChildren)
 				)}
 				<h1>{props.title}</h1>
 				{props.actions && <div class="page-actions">{props.actions}</div>}
 			</header>
 			{props.banner}
 			<main class="page">
-				<div class={`page-inner ${props.stack ? "stack" : ""}`}>
+				<div class={cx("page-inner", props.stack && "stack")}>
 					{props.children}
 				</div>
 			</main>

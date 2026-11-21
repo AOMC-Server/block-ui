@@ -1,11 +1,10 @@
 import { expect, test } from "bun:test";
-import { csvCell, toCsv } from "./csv";
+import { toCsv } from "./csv";
 
-test("escaping", () => {
-	expect(csvCell("a,b")).toBe('"a,b"');
-	expect(csvCell('say "hi"')).toBe('"say ""hi"""');
-	expect(csvCell("two\nlines")).toBe('"two\nlines"');
-	expect(csvCell(5)).toBe("5");
+test("cells are quoted when they need it", () => {
+	expect(toCsv([["a,b", 'say "hi"', "two\nlines", 5]])).toBe(
+		'"a,b","say ""hi""","two\nlines",5\n',
+	);
 	expect(
 		toCsv([
 			["a", 1],

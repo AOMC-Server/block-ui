@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import { cx } from "../lib/cx";
 
 export type SelectOption<T extends string | number> = {
 	value: T;
@@ -69,7 +70,7 @@ export function PreviewSelect<T extends string | number>(props: {
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: the keys are handled for the button and list inside
 		<div
-			class={`preview-select ${props.wide ? "wide" : ""}`}
+			class={cx("preview-select", props.wide && "wide")}
 			ref={ref}
 			onKeyDown={onKeyDown}
 		>
@@ -98,7 +99,10 @@ export function PreviewSelect<T extends string | number>(props: {
 								type="button"
 								role="option"
 								aria-selected={o.value === value}
-								class={`preview-select-option ${o.value === value ? "selected" : ""}`}
+								class={cx(
+									"preview-select-option",
+									o.value === value && "selected",
+								)}
 								onClick={() => choose(o.value)}
 							>
 								{o.preview}

@@ -66,9 +66,7 @@ export function createWidthStore(opts: WidthStoreOptions): WidthStore {
 
 	const stored = Number(read(opts.key));
 	const width = signal<number>(
-		Number.isFinite(stored) && stored > 0
-			? Math.max(stored, opts.min)
-			: opts.default,
+		Number.isFinite(stored) && stored > 0 ? clamp(stored) : opts.default,
 	);
 
 	let dispose = () => {};

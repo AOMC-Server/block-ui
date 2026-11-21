@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { effect } from "@preact/signals";
 import {
 	appearance,
 	applyAppearance,
@@ -121,8 +122,82 @@ describe("palette scope", () => {
 		expect(paletteScope(null)).toEqual({});
 	});
 
-	test("without an applied appearance only the palette is set", () => {
+	test("without an applied appearance the attributes of <html> are used", () => {
+		const dataset = document.documentElement.dataset;
 		appearance.value = null;
+		delete dataset.mode;
+		delete dataset.style;
 		expect(paletteScope("end")).toEqual({ "data-palette": "end" });
+		dataset.mode = "light";
+		dataset.style = "win98";
+		expect(paletteScope("end")).toEqual({
+			"data-palette": "end",
+			"data-mode": "light",
+			"data-style": "win98",
+		});
+		delete dataset.mode;
+		delete dataset.style;
+	});
+
+	test("it follows the appearance, so what renders it updates on a change", () => {
+		appearance.value = { mode: "dark", palette: null, style: "bedrock" };
+		const seen: string[] = [];
+		const stop = effect(() => {
+			const scope = paletteScope("nether");
+			seen.push(`${scope["data-mode"]}/${scope["data-style"]}`);
+		});
+		applyAppearance({ mode: "light", style: "bedrock" });
+		applyAppearance({ mode: "light", style: "xp" });
+		stop();
+		expect(seen).toEqual(["dark/bedrock", "light/bedrock", "light/xp"]);
+		appearance.value = null;
+	});
+});
+
+describe("prefers-color-scheme", () => {
+	const original = globalThis.matchMedia;
+	afterEach(() => {
+		globalThis.matchMedia = original;
+	});
+
+	/** A fresh copy of the module, with a matchMedia that records its use. */
+	async function load() {
+		const log: string[] = [];
+		const listeners: ((e: { matches: boolean }) => void)[] = [];
+		globalThis.matchMedia = ((query: string) => {
+			log.push(query);
+			return {
+				matches: true,
+				addEventListener: (
+					_type: string,
+					fn: (e: { matches: boolean }) => void,
+				) => listeners.push(fn),
+			};
+		}) as unknown as typeof matchMedia;
+		const mod = (await import(
+			`./theme.ts?fresh=${Math.random()}`
+		)) as typeof import("./theme");
+		return { mod, log, listeners };
+	}
+
+	test("importing the module does not touch matchMedia; the first read does", async () => {
+		const { mod, log, listeners } = await load();
+		expect(log).toEqual([]);
+		expect(mod.prefersLight.value).toBe(true);
+		expect(log).toEqual(["(prefers-color-scheme: light)"]);
+		expect(listeners).toHaveLength(1);
+		mod.prefersLight.value;
+		expect(log).toHaveLength(1);
+	});
+
+	test("it follows the system once read", async () => {
+		const { mod, listeners } = await load();
+		const seen: boolean[] = [];
+		const stop = effect(() => {
+			seen.push(mod.prefersLight.value);
+		});
+		listeners[0]?.({ matches: false });
+		stop();
+		expect(seen).toEqual([true, false]);
 	});
 });

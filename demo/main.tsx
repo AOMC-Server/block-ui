@@ -29,7 +29,6 @@ import {
 	formatBytes,
 	formatDuration,
 	formatElapsed,
-	formatEta,
 	formatHours,
 	formatPercent,
 	formatRelative,
@@ -51,7 +50,6 @@ import {
 	Progress,
 	paletteScope,
 	prefersLight,
-	RangePicker,
 	resolveMode,
 	Segmented,
 	ShownOnce,
@@ -376,10 +374,6 @@ function Selectors() {
 				names={{ all: "All time" }}
 				onChange={setRange}
 			/>
-			<p>
-				<span class="muted">RangePicker is an alias of Segmented.</span>{" "}
-				<RangePicker value="a" options={["a", "b"]} onChange={() => {}} small />
-			</p>
 			<Tabs
 				value={tab}
 				tabs={[
@@ -442,7 +436,7 @@ function Surfaces() {
 						<span>Uptime</span>
 						<b>{formatElapsed(3900)}</b>
 						<span>Last seen</span>
-						<b>{formatRelative("2026-01-01 00:00:00.000")}</b>
+						<b>{formatRelative(Date.UTC(2026, 0, 1))}</b>
 					</div>
 					<Card inner>An inner card, one layer lighter.</Card>
 				</Card>
@@ -453,7 +447,7 @@ function Surfaces() {
 						<span>Size (kb style)</span>
 						<b>{formatBytes(2048, "kb")}</b>
 						<span>ETA</span>
-						<b>{formatEta(200)}</b>
+						<b>{formatElapsed(200)}</b>
 					</div>
 				</Card>
 			</div>

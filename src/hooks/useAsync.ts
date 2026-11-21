@@ -26,7 +26,11 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
  * Loads something whenever `deps` change. `load` returns the data or throws; its argument is an
  * AbortSignal that fires when the result is no longer wanted (pass it to fetch). A stale
  * result (from before the deps changed or a newer load) is ignored, and the previous data stays
- * visible while the next loads. Pass `null` to skip loading (nothing to ask for yet).
+ * visible while the next loads. Pass `null` to skip loading (nothing to ask for yet): data and
+ * error are cleared then, as they belong to what was asked before.
+ *
+ * `deps` must have the same length on every render (they are spread into the hook's own list);
+ * list the values `load` reads, as for `useEffect`.
  *
  *     const users = useAsync((signal) => getJson<User[]>(`/api/users?q=${q}`, signal), [q]);
  */
@@ -49,7 +53,11 @@ export function useAsync<T>(
 	useEffect(() => {
 		const run = fn.current;
 		if (!run) {
-			setState((s) => (s.loading ? { ...s, loading: false } : s));
+			setState((s) =>
+				s.loading || s.data !== null || s.error !== null
+					? { data: null, error: null, loading: false }
+					: s,
+			);
 			return;
 		}
 		const abort = new AbortController();

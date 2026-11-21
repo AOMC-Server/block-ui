@@ -140,6 +140,13 @@ input[type="radio"] {
 	margin: 0;
 }
 
+/* The <label> of a Field wraps its label text and control, and lays them out like the field. */
+.field > .field-control {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
 .label,
 .field-label {
 	display: block;
@@ -152,7 +159,9 @@ input[type="radio"] {
 	margin-bottom: 6px;
 }
 
-.field > .label {
+/* Both shapes work: a Field's <div> around its `.field-control` label, or a bare <label class="field">. */
+.field > .label,
+.field > .field-control > .label {
 	margin: 0;
 }
 
@@ -165,7 +174,12 @@ input[type="radio"] {
 	margin: 14px 0;
 }
 
-.field.flow > .label {
+.field.flow > .field-control {
+	display: block;
+}
+
+.field.flow > .label,
+.field.flow > .field-control > .label {
 	margin-bottom: 6px;
 }
 
@@ -489,7 +503,7 @@ input[type="range"]:disabled {
  * Appearance pickers (ModePicker, ChoicePicker, StylePicker): a row of buttons, and a card per
  * style with a small window drawn in that style.
  * ------------------------------------------------------------------------------------------- */
-.mode-picker,
+.choice-picker,
 .style-picker {
 	min-width: 0;
 	margin: 14px 0;
@@ -498,16 +512,16 @@ input[type="range"]:disabled {
 }
 
 /* In a card the gap between its children is the card's. */
-.card > :is(.mode-picker, .style-picker) {
+.card > :is(.choice-picker, .style-picker) {
 	margin: 14px 0 0;
 }
 
-.mode-picker legend,
+.choice-picker legend,
 .style-picker legend {
 	padding: 0;
 }
 
-.mode-picker.narrow .segmented {
+.choice-picker.narrow .segmented {
 	max-width: 420px;
 }
 

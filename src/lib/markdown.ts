@@ -7,7 +7,7 @@ export type Inline =
 const TOKEN = /\*\*(.+?)\*\*|\[([^\]\n]+)\]\(((?:[^\s()]|\([^\s()]*\))+)\)/g;
 
 /** Only http(s) links are allowed; anything else (javascript:, data:, ...) is shown as plain text. */
-export function safeHref(url: string): string | null {
+function safeHref(url: string): string | null {
 	try {
 		const u = new URL(url);
 		return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
@@ -17,7 +17,7 @@ export function safeHref(url: string): string | null {
 }
 
 /** The popup markup subset: **bold**, [text](https://link) and line breaks. Never produces HTML. */
-export function parseInline(line: string): Inline[] {
+function parseInline(line: string): Inline[] {
 	const out: Inline[] = [];
 	let last = 0;
 	for (const m of line.matchAll(TOKEN)) {
@@ -39,6 +39,7 @@ export function parseInline(line: string): Inline[] {
 	return out;
 }
 
+/** A text as lines of inline parts: the popup markup subset, line by line. */
 export function parseText(text: string): Inline[][] {
 	return text.split(/\r?\n/).map(parseInline);
 }

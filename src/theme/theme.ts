@@ -1,4 +1,4 @@
-import { signal } from "@preact/signals";
+import { computed, type Signal, signal } from "@preact/signals";
 
 /**
  * The look of the interface is three independent choices, each an attribute on <html> that
@@ -38,9 +38,6 @@ export const MODES = [
 export type ModeChoice = (typeof MODES)[number]["id"];
 export type Mode = "dark" | "light";
 
-export const DEFAULT_STYLE: StyleId = "bedrock";
-export const DEFAULT_MODE: Mode = "dark";
-
 export const isStyle = (value: unknown): value is StyleId =>
 	STYLES.some((s) => s.id === value);
 
@@ -50,12 +47,22 @@ export const isModeChoice = (value: unknown): value is ModeChoice =>
 export const resolveMode = (choice: ModeChoice, prefersLight: boolean): Mode =>
 	choice === "system" ? (prefersLight ? "light" : "dark") : choice;
 
-const lightQuery = globalThis.matchMedia?.("(prefers-color-scheme: light)");
+let systemLight: Signal<boolean> | undefined;
 
-/** Whether the system asks for light colours; follows changes. */
-export const prefersLight = signal(lightQuery?.matches ?? false);
-lightQuery?.addEventListener("change", (e) => {
-	prefersLight.value = e.matches;
+/** Starts following the system on first use, so that importing this module does nothing. */
+function followSystem(): Signal<boolean> {
+	const query = globalThis.matchMedia?.("(prefers-color-scheme: light)");
+	const light = signal(query?.matches ?? false);
+	query?.addEventListener("change", (e) => {
+		light.value = e.matches;
+	});
+	return light;
+}
+
+/** Whether the system asks for light colours; follows changes once it has been read. */
+export const prefersLight = computed(() => {
+	systemLight ??= followSystem();
+	return systemLight.value;
 });
 
 export type Appearance = {
@@ -82,8 +89,13 @@ export function applyAppearance(a: Appearance) {
 
 /**
  * Attributes that give an element a palette of its own (a dye, a dimension), in the mode and
- * style in use. The mode and style are repeated because the tokens derived from them are worked
- * out where they are declared; see css/tokens.css.
+ * style in use. The mode and style are repeated because a palette's tokens are selected by
+ * `[data-palette][data-mode]` on the element itself, and the tokens derived from them (title
+ * bars, shadows) are worked out where the style is declared; see css/tokens.css.
+ *
+ * It reads the `appearance` signal, so calling it while rendering keeps the element up to date
+ * when the mode or style changes. Before `applyAppearance` has run, the attributes on <html> are
+ * used.
  *
  *     <div {...paletteScope("nether")}>...</div>
  */
@@ -91,9 +103,16 @@ export function paletteScope(
 	palette: string | null | undefined,
 ): Record<string, string> {
 	if (!palette) return {};
-	const a = appearance.peek();
+	const a = appearance.value;
+	const root =
+		typeof document === "undefined"
+			? undefined
+			: document.documentElement.dataset;
+	const mode = a?.mode ?? root?.mode;
+	const style = a?.style ?? root?.style;
 	return {
 		"data-palette": palette,
-		...(a ? { "data-mode": a.mode, "data-style": a.style } : {}),
+		...(mode ? { "data-mode": mode } : {}),
+		...(style ? { "data-style": style } : {}),
 	};
 }
