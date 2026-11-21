@@ -44,10 +44,20 @@ export type TileData = {
 	hint?: string;
 };
 
-/** Tiles in a responsive grid. */
-export function TileGrid(props: { tiles: readonly TileData[] }) {
+/**
+ * Tiles in a responsive grid. `plain` draws them flat, with bold labels and a wider grid, to sit
+ * on a page section; `min` sets the narrowest a tile gets, in pixels (default 180, plain 200).
+ */
+export function TileGrid(props: {
+	tiles: readonly TileData[];
+	plain?: boolean;
+	min?: number;
+}) {
 	return (
-		<div class="tiles">
+		<div
+			class={`tiles ${props.plain ? "plain" : ""}`}
+			style={props.min ? { "--tile-min": `${props.min}px` } : undefined}
+		>
 			{props.tiles.map((t) => (
 				<Tile key={t.label} {...t} />
 			))}

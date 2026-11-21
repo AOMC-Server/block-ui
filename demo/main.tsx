@@ -14,6 +14,7 @@ import {
 	BossBar,
 	Card,
 	Chart,
+	ChoicePicker,
 	Confirm,
 	ConnectionBadge,
 	type ConnectionStatus,
@@ -39,6 +40,7 @@ import {
 	MODES,
 	Modal,
 	type ModeChoice,
+	ModePicker,
 	moveFocus,
 	moveItem,
 	Page,
@@ -56,6 +58,7 @@ import {
 	SortTh,
 	STYLES,
 	type StyleId,
+	StylePicker,
 	Tabs,
 	TileGrid,
 	Toasts,
@@ -241,7 +244,25 @@ function Forms() {
 			/>
 			<Toggle checked={b} onChange={setB} label="Maintenance" class="danger" />
 			<Toggle checked={c} onChange={setC} label="Inline toggle" inline />
+			<Toggle
+				checked={false}
+				onChange={() => {}}
+				label="Inline with a hint and a tooltip"
+				hint="The label keeps the body weight."
+				title="A tooltip on the whole row"
+				inline
+			/>
 			<Toggle checked disabled onChange={() => {}} label="Disabled" inline />
+			<h3 class="section-title">Fields in the flow of a page</h3>
+			<p class="muted">
+				<code>flow</code> fields are plain blocks with a margin of their own,
+				between paragraphs.
+			</p>
+			<Field label="A flow field" hint="Label 6px above, 14px around." flow>
+				<select>
+					<option>One</option>
+				</select>
+			</Field>
 			<h3 class="section-title">Toolbar</h3>
 			<div class="toolbar">
 				<input type="search" placeholder="Filter…" aria-label="Filter" />
@@ -263,6 +284,55 @@ function Forms() {
 				value={3600}
 				onChange={() => {}}
 			/>
+		</Section>
+	);
+}
+
+function Pickers() {
+	const [mode, setMode] = useState<ModeChoice>("system");
+	const [style, setStyle] = useState<StyleId>("modern");
+	const [nether, setNether] = useState<StyleId>("xp");
+	const [speed, setSpeed] = useState("normal");
+	return (
+		<Section title="Appearance pickers, embedded page">
+			<p class="muted">
+				These keep their own state; the switcher above is what changes the page.
+			</p>
+			<ModePicker value={mode} onChange={setMode} narrow />
+			<ChoicePicker
+				label="Camera speed"
+				value={speed}
+				options={[
+					{ id: "instant", name: "Instant" },
+					{ id: "normal", name: "Normal" },
+					{ id: "slow", name: "Slow" },
+				]}
+				hint="A labelled row of buttons with a hint."
+				onChange={setSpeed}
+			/>
+			<StylePicker
+				value={style}
+				onChange={setStyle}
+				previewTitle="Layers"
+				previewButtons={["Edit", "Save"]}
+			/>
+			<h3 class="section-title">With the nether palette</h3>
+			<StylePicker
+				label="Style (nether)"
+				palette="nether"
+				value={nether}
+				onChange={setNether}
+			/>
+			<h3 class="section-title">An embedded page</h3>
+			<p class="muted">
+				In Windows 98 and XP an embedded page is a plain window surface, not the
+				desktop, so loose text stays readable.
+			</p>
+			<div>
+				<Page embedded title="Settings">
+					<p>Text straight on the page, with no card around it.</p>
+				</Page>
+			</div>
 		</Section>
 	);
 }
@@ -341,6 +411,15 @@ function Surfaces() {
 					{ label: "Uptime", value: formatDuration(93_000) },
 					{ label: "Playtime", value: formatHours(7153.24) },
 					{ label: "Share", value: formatPercent(0.1234) },
+				]}
+			/>
+			<h3 class="section-title">Plain tiles (flat, bold labels, wider grid)</h3>
+			<TileGrid
+				plain
+				tiles={[
+					{ label: "Requests", value: "1,204" },
+					{ label: "Traffic", value: formatBytes(5_400_000) },
+					{ label: "Errors", value: "3", hint: "last 24 hours" },
 				]}
 			/>
 			<div class="page-split">
@@ -595,6 +674,37 @@ function Tables() {
 				total={ROWS.length}
 				onChange={setOffset}
 			/>
+			<h3 class="section-title">Plain table, flush in a section</h3>
+			<div class="page-section">
+				<div class="table-wrap flush">
+					<table class="table plain compact">
+						<thead>
+							<tr>
+								<th>Route</th>
+								<th class="num">Requests</th>
+								<th class="num">Traffic</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Tiles</td>
+								<td class="num">120,331</td>
+								<td class="num">{formatBytes(800_000_000)}</td>
+							</tr>
+							<tr>
+								<td>
+									Pages{" "}
+									<button type="button" class="btn small">
+										Open
+									</button>
+								</td>
+								<td class="num">4,200</td>
+								<td class="num">{formatBytes(12_000_000)}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
 		</Section>
 	);
 }
@@ -774,6 +884,7 @@ function Overlays() {
 					title={modal === "danger" ? "Delete everything?" : "Continue?"}
 					confirmLabel={modal === "danger" ? "Delete" : "Continue"}
 					danger={modal === "danger"}
+					closeOnBackdrop={modal === "danger"}
 					onConfirm={() => {
 						toast("Confirmed", "ok");
 						close();
@@ -999,6 +1110,7 @@ function App() {
 			<main class="demo-main">
 				<Buttons />
 				<Forms />
+				<Pickers />
 				<Selectors />
 				<Surfaces />
 				<Small />

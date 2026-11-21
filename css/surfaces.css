@@ -222,7 +222,7 @@ body.resizing {
  * ------------------------------------------------------------------------------------------- */
 .tiles {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(var(--tile-min, 180px), 1fr));
 	gap: 8px;
 	margin-bottom: 8px;
 }
@@ -257,6 +257,20 @@ body.resizing {
 	margin: 2px 0 0;
 	font-size: 13px;
 	color: var(--muted);
+}
+
+/* `.tiles.plain`: flat tiles with bold labels and a wider grid, for a page section. */
+.tiles.plain {
+	grid-template-columns: repeat(auto-fill, minmax(var(--tile-min, 200px), 1fr));
+}
+
+.tiles.plain .tile {
+	box-shadow: none;
+}
+
+.tiles.plain .tile-label {
+	margin-bottom: 6px;
+	font-weight: 600;
 }
 
 /* Free-form grid of cards. */

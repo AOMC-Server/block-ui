@@ -2,8 +2,9 @@ import type { ComponentChildren } from "preact";
 
 /**
  * A checkbox drawn as a slide toggle (`input.switch`). By default a settings row: the label and
- * its hint on the left, the switch on the right. `inline` puts the switch before the label, with
- * no card around it. Call initToggleDrag() once to let the knob be dragged.
+ * its hint on the left, the switch on the right. `inline` puts the switch before the label, in
+ * the text's own weight, with no card around it. Call initToggleDrag() once to let the knob be
+ * dragged.
  */
 export function Toggle(props: {
 	checked: boolean;
@@ -16,10 +17,13 @@ export function Toggle(props: {
 	class?: string;
 	/** Accessible name when there is no label. */
 	ariaLabel?: string;
+	/** Tooltip of the whole row (say why it is disabled). */
+	title?: string;
 }) {
 	return (
 		<label
 			class={`${props.inline ? "check" : "toggle"} ${props.disabled ? "disabled" : ""} ${props.class ?? ""}`}
+			title={props.title}
 		>
 			<input
 				type="checkbox"

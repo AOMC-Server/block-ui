@@ -3,6 +3,7 @@ import type { ComponentChildren } from "preact";
 import { render } from "preact";
 import { act } from "preact/test-utils";
 import type { AsyncState } from "../hooks/useAsync";
+import { appearance } from "../theme/theme";
 import { Async, Empty, ErrorBox, Loading } from "./Async";
 import { Avatar, avatarColorIndex } from "./Avatar";
 import { Badge, Count } from "./Badge";
@@ -15,6 +16,7 @@ import { Confirm, Modal } from "./Modal";
 import { moveFocus } from "./menu";
 import { Page } from "./Page";
 import { Panel } from "./Panel";
+import { ChoicePicker, ModePicker, StylePicker } from "./Pickers";
 import { PopupText } from "./PopupText";
 import { PreviewSelect } from "./PreviewSelect";
 import { BossBar, Progress } from "./Progress";
@@ -181,6 +183,32 @@ describe("Modal", () => {
 		click(confirm as Element);
 		click(cancel as Element);
 		expect(log).toEqual(["yes", "no"]);
+	});
+
+	test("Confirm passes closeOnBackdrop on to the modal", () => {
+		let closed = 0;
+		const ui = (closeOnBackdrop?: boolean) => (
+			<Confirm
+				title="Delete?"
+				closeOnBackdrop={closeOnBackdrop}
+				onConfirm={() => {}}
+				onClose={() => closed++}
+			>
+				Sure?
+			</Confirm>
+		);
+		const press = () =>
+			act(() => {
+				q(".modal-backdrop").dispatchEvent(
+					new MouseEvent("mousedown", { bubbles: true }),
+				);
+			});
+		mount(ui());
+		press();
+		expect(closed).toBe(0);
+		act(() => render(ui(true), host as HTMLElement));
+		press();
+		expect(closed).toBe(1);
 	});
 });
 
@@ -464,6 +492,24 @@ describe("Toggle", () => {
 		expect(q("label").classList.contains("disabled")).toBe(true);
 		expect(q<HTMLInputElement>("input").disabled).toBe(true);
 		expect(q<HTMLInputElement>("input").checked).toBe(true);
+	});
+
+	test("title is the tooltip of the whole row", () => {
+		mount(
+			<Toggle
+				checked={false}
+				inline
+				label="Private"
+				title="Only the creator can change this"
+				onChange={() => {}}
+			/>,
+		);
+		expect(q("label").getAttribute("title")).toBe(
+			"Only the creator can change this",
+		);
+		expect(q(".check > input.switch + .toggle-text").textContent).toBe(
+			"Private",
+		);
 	});
 
 	test("without a label the aria-label names it", () => {
@@ -893,5 +939,187 @@ describe("share helpers", () => {
 		expect(buttons.map((b) => b.textContent)).toEqual(["Copy", "Done"]);
 		click(buttons[1] as Element);
 		expect(done).toBe(1);
+	});
+});
+
+describe("Field", () => {
+	test("flow makes it an ordinary block with its own margin", () => {
+		mount(
+			<>
+				<Field label="A" hint="why">
+					<input />
+				</Field>
+				<Field label="B" flow>
+					<input />
+				</Field>
+			</>,
+		);
+		const [a, b] = [...document.querySelectorAll("label.field")];
+		expect(a?.classList.contains("flow")).toBe(false);
+		expect(b?.classList.contains("flow")).toBe(true);
+		expect(a?.querySelector(".label")?.textContent).toBe("A");
+		expect(a?.querySelector(".hint")?.textContent).toBe("why");
+	});
+});
+
+describe("TileGrid", () => {
+	const tiles = [
+		{ label: "Players", value: 3 },
+		{ label: "Hours", value: "1.5", hint: "total" },
+	];
+
+	test("plain and min are opt-in", () => {
+		mount(<TileGrid tiles={tiles} />);
+		expect(q(".tiles").className.trim()).toBe("tiles");
+		expect(q(".tiles").getAttribute("style")).toBeNull();
+		expect(document.querySelectorAll(".tile")).toHaveLength(2);
+		expect(q(".tile-hint").textContent).toBe("total");
+	});
+
+	test("plain adds the modifier, min sets the grid's column width", () => {
+		mount(<TileGrid tiles={tiles} plain min={240} />);
+		expect(q(".tiles").classList.contains("plain")).toBe(true);
+		expect(q(".tiles").style.getPropertyValue("--tile-min")).toBe("240px");
+	});
+});
+
+describe("appearance pickers", () => {
+	const buttons = () => [
+		...document.querySelectorAll<HTMLElement>(".mode-picker .btn"),
+	];
+
+	test("ModePicker marks the value and reports the choice", () => {
+		const log: string[] = [];
+		mount(<ModePicker value="dark" onChange={(m) => log.push(m)} />);
+		expect(q(".mode-picker legend").textContent).toBe("Colours");
+		expect(buttons().map((b) => b.textContent)).toEqual([
+			"System",
+			"Dark",
+			"Light",
+		]);
+		expect(buttons().map((b) => b.getAttribute("aria-pressed"))).toEqual([
+			"false",
+			"true",
+			"false",
+		]);
+		click(buttons()[2] as Element);
+		expect(log).toEqual(["light"]);
+		expect(q(".mode-picker").classList.contains("narrow")).toBe(false);
+	});
+
+	test("ModePicker can be narrow and relabelled", () => {
+		mount(
+			<ModePicker value="system" onChange={() => {}} label="Theme" narrow />,
+		);
+		expect(q(".mode-picker legend").textContent).toBe("Theme");
+		expect(q(".mode-picker").classList.contains("narrow")).toBe(true);
+	});
+
+	test("ChoicePicker takes any options, with a hint", () => {
+		const log: string[] = [];
+		mount(
+			<ChoicePicker
+				label="Speed"
+				value="fast"
+				options={[
+					{ id: "slow", name: "Slow" },
+					{ id: "fast", name: "Fast" },
+				]}
+				hint="How quickly it moves."
+				onChange={(v) => log.push(v)}
+			/>,
+		);
+		expect(q(".mode-picker .hint").textContent).toBe("How quickly it moves.");
+		click(buttons()[0] as Element);
+		expect(log).toEqual(["slow"]);
+		expect(buttons()[1]?.classList.contains("active")).toBe(true);
+	});
+
+	const radios = () => [
+		...document.querySelectorAll<HTMLInputElement>(".style-option input"),
+	];
+
+	test("StylePicker draws a preview per style and reports the choice", () => {
+		const log: string[] = [];
+		mount(
+			<StylePicker
+				value="xp"
+				previewTitle="Players"
+				previewButtons={["Sync", "Save"]}
+				onChange={(s) => log.push(s)}
+			/>,
+		);
+		expect(q(".style-picker legend").textContent).toBe("Style");
+		const options = [...document.querySelectorAll(".style-option")];
+		expect(options).toHaveLength(4);
+		expect(
+			[...document.querySelectorAll(".style-preview")].map((p) =>
+				p.getAttribute("data-style"),
+			),
+		).toEqual(["bedrock", "win98", "xp", "modern"]);
+		expect(q(".preview-head").textContent).toBe("Players");
+		expect(
+			[...document.querySelectorAll(".preview-body .btn")]
+				.slice(0, 2)
+				.map((b) => b.textContent),
+		).toEqual(["Sync", "Save"]);
+		expect(q(".style-name").textContent).toBe("Bedrock");
+		expect(radios().map((r) => r.checked)).toEqual([false, false, true, false]);
+		expect(options.map((o) => o.classList.contains("selected"))).toEqual([
+			false,
+			false,
+			true,
+			false,
+		]);
+		const names = new Set(radios().map((r) => r.name));
+		expect(names.size).toBe(1);
+		act(() => {
+			(radios()[1] as HTMLInputElement).dispatchEvent(
+				new Event("change", { bubbles: true }),
+			);
+		});
+		expect(log).toEqual(["win98"]);
+	});
+
+	test("StylePicker previews are aria-hidden and have defaults", () => {
+		mount(<StylePicker value="bedrock" onChange={() => {}} />);
+		expect(q(".style-preview").getAttribute("aria-hidden")).toBe("true");
+		expect(q(".preview-head").textContent).toBe("Window");
+		expect(q(".style-preview").hasAttribute("data-palette")).toBe(false);
+	});
+
+	test("a palette gives each preview its own, in its own style", () => {
+		appearance.value = { mode: "light", style: "modern", palette: null };
+		mount(<StylePicker value="bedrock" palette="nether" onChange={() => {}} />);
+		const previews = [...document.querySelectorAll(".style-preview")];
+		expect(previews.map((p) => p.getAttribute("data-palette"))).toEqual([
+			"nether",
+			"nether",
+			"nether",
+			"nether",
+		]);
+		expect(previews.map((p) => p.getAttribute("data-mode"))).toEqual([
+			"light",
+			"light",
+			"light",
+			"light",
+		]);
+		expect(previews.map((p) => p.getAttribute("data-style"))).toEqual([
+			"bedrock",
+			"win98",
+			"xp",
+			"modern",
+		]);
+		appearance.value = null;
+	});
+
+	test("two pickers on a page do not share a radio group", () => {
+		mount(
+			<>
+				<StylePicker value="bedrock" onChange={() => {}} />
+				<StylePicker value="xp" onChange={() => {}} />
+			</>,
+		);
+		expect(new Set(radios().map((r) => r.name)).size).toBe(2);
 	});
 });

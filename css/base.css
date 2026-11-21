@@ -59,7 +59,9 @@ code {
 	display: block;
 }
 
-:focus-visible {
+/* No specificity of its own: a control that draws its focus differently (a text field
+ * highlights its border) says outline: none and wins. */
+:where(:focus-visible) {
 	outline: 2px solid var(--focus);
 	outline-offset: 2px;
 }
@@ -94,10 +96,20 @@ code {
 	color: var(--muted);
 }
 
+/*
+ * Paragraphs and hint blocks keep a gap above and below. `--note-gap` sets it for every element
+ * with these classes, whatever its display (spans in a flex row, list items): an app that wants
+ * the gap everywhere sets it once, e.g. `:root { --note-gap: 4px }`.
+ */
+.muted,
+.hint {
+	margin-block: var(--note-gap, revert);
+}
+
 p.muted,
 p.hint,
 div.hint {
-	margin: 4px 0;
+	margin-block: var(--note-gap, 4px);
 }
 
 .small-text {

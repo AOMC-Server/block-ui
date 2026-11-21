@@ -126,12 +126,15 @@ export function Confirm(props: {
 	danger?: boolean;
 	/** Disables both buttons, while the confirmed action runs. */
 	busy?: boolean;
+	/** Pressing the dimmed backdrop cancels, like Escape (see Modal). */
+	closeOnBackdrop?: boolean;
 	onConfirm: () => void;
 	onClose: () => void;
 }) {
 	return (
 		<Modal
 			title={props.title}
+			closeOnBackdrop={props.closeOnBackdrop}
 			onClose={props.onClose}
 			footer={
 				<>

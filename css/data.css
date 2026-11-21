@@ -9,6 +9,12 @@
 	border: var(--bw) solid var(--line);
 }
 
+/* `.flush`: no frame, for a table that sits straight in a page section or card. */
+.table-wrap.flush {
+	background: none;
+	border: 0;
+}
+
 .table {
 	width: 100%;
 	border-collapse: collapse;
@@ -30,6 +36,24 @@
 	color: var(--muted);
 	background: var(--s2);
 	white-space: nowrap;
+}
+
+/*
+ * Variants: `.middle` centres cells vertically, `.no-hover` leaves the row under the pointer
+ * alone, `.plain` is both, with a header that looks like any other row (not sticky, not small
+ * or muted). Use `.plain` with `.table-wrap.flush` inside a page section.
+ */
+.table.middle :is(th, td),
+.table.plain :is(th, td) {
+	vertical-align: middle;
+}
+
+/* Element + class, so it beats `.table th` but not the classes of single headers (`.rank`, `.sort`). */
+table.plain th {
+	position: static;
+	font-size: inherit;
+	color: inherit;
+	background: none;
 }
 
 .table .num {
@@ -65,6 +89,11 @@
 
 .table tbody tr:hover {
 	background: var(--card-lo);
+}
+
+.table.no-hover tbody tr:hover,
+.table.plain tbody tr:hover {
+	background: none;
 }
 
 .table tr.click {

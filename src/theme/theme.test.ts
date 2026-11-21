@@ -48,6 +48,23 @@ describe("appearance", () => {
 		}
 	});
 
+	test("the global focus ring has no specificity, so controls can draw their own", () => {
+		const base = css("base.css");
+		expect(base).toContain(":where(:focus-visible) {");
+		expect(base).not.toMatch(/^:focus-visible/m);
+	});
+
+	test("an embedded page is a plain window surface in the windowed styles", () => {
+		const styles = css("styles.css");
+		for (const style of ["win98", "xp"]) {
+			const start = styles.indexOf(`@scope ([data-style="${style}"])`);
+			const block = styles.slice(start, styles.indexOf("\n}\n", start));
+			expect(block, style).toMatch(
+				/\.page-root\.embedded \{\s*background: var\(--s1\);/,
+			);
+		}
+	});
+
 	test("tokens.css has the tokens the components use", () => {
 		const tokens = css("tokens.css");
 		for (const token of [

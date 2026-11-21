@@ -6,12 +6,14 @@
 @scope ([data-style="win98"]) to ([data-style]) {
 	/* Windows: a raised frame with the title bar inset in it. */
 	.panel,
-	.modal {
+	.modal,
+	.preview-window {
 		padding: 3px;
 	}
 
 	.panel-head,
-	.modal-head {
+	.modal-head,
+	.preview-head {
 		min-height: 0;
 		padding: 4px 4px 4px 8px;
 		box-shadow: none;
@@ -67,7 +69,9 @@
 	/* Cards are raised too; what sits inside them is sunk. */
 	.card.inner,
 	.tile,
-	.toggle {
+	.toggle,
+	.shown-once,
+	.style-option {
 		box-shadow: var(--bevel-out);
 	}
 
@@ -131,19 +135,26 @@
 	.page-root {
 		background: color-mix(in srgb, var(--accent), var(--chrome));
 	}
+
+	/* A page inside an app is a window, not the desktop: loose text needs a plain surface. */
+	.page-root.embedded {
+		background: var(--s1);
+	}
 }
 
 @scope ([data-style="xp"]) to ([data-style]) {
 	/* Windows: a frame in the chrome colour around a title bar, rounded at the top only. */
 	.panel,
-	.modal {
+	.modal,
+	.preview-window {
 		border: 3px solid var(--chrome);
 		border-radius: 8px 8px 0 0;
 	}
 
 	.panel-head,
 	.modal-head,
-	.page-head {
+	.page-head,
+	.preview-head {
 		text-shadow: 1px 1px 0 color-mix(in srgb, var(--chrome), #000 55%);
 		border-bottom-color: transparent;
 	}
@@ -204,6 +215,10 @@
 				var(--chrome),
 				color-mix(in srgb, var(--chrome), #fff 60%) 80%
 			);
+	}
+
+	.page-root.embedded {
+		background: var(--s1);
 	}
 }
 

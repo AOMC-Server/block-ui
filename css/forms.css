@@ -156,6 +156,19 @@ input[type="radio"] {
 	margin: 0;
 }
 
+/*
+ * `.field.flow`: an ordinary block with its own margin, for fields between paragraphs and
+ * sections of a page (a settings page) rather than in a form. The label sits 6px above the control.
+ */
+.field.flow {
+	display: block;
+	margin: 14px 0;
+}
+
+.field.flow > .label {
+	margin-bottom: 6px;
+}
+
 /* ---------------------------------------------------------------------------------------------
  * Slide toggle: <input type="checkbox" class="switch">, a square knob that slides over a green
  * track (a pill in the Modern style). Plain checkboxes stay native. Use the Toggle component, and
@@ -267,6 +280,11 @@ input.switch:disabled {
 	font-size: 13px;
 }
 
+.check .hint {
+	display: block;
+	margin: 2px 0 0;
+}
+
 .check.disabled,
 .toggle.disabled {
 	cursor: default;
@@ -295,6 +313,11 @@ input.switch:disabled {
 	flex: 1;
 	min-width: 0;
 	font-weight: 600;
+}
+
+/* The text of an inline switch is body text; only a settings row makes its label bold. */
+.check > .toggle-text {
+	font-weight: inherit;
 }
 
 .toggle .hint {
@@ -456,6 +479,119 @@ input[type="range"]:disabled {
 
 .preview-select-option.selected {
 	border-color: var(--text);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Appearance pickers (ModePicker, ChoicePicker, StylePicker): a row of buttons, and a card per
+ * style with a small window drawn in that style.
+ * ------------------------------------------------------------------------------------------- */
+.mode-picker,
+.style-picker {
+	min-width: 0;
+	margin: 14px 0;
+	padding: 0;
+	border: 0;
+}
+
+/* In a card the gap between its children is the card's. */
+.card > :is(.mode-picker, .style-picker) {
+	margin: 14px 0 0;
+}
+
+.mode-picker legend,
+.style-picker legend {
+	padding: 0;
+}
+
+.mode-picker.narrow .segmented {
+	max-width: 420px;
+}
+
+.style-picker {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 8px;
+}
+
+.style-option {
+	border-radius: var(--radius);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 8px 8px 12px;
+	background: var(--s2);
+	border: var(--bw) solid var(--line);
+	box-shadow:
+		inset var(--edge-lo) 0 var(--card-lo),
+		inset var(--edge-hi) 0 var(--sheen);
+	cursor: pointer;
+}
+
+.style-option:hover {
+	background: var(--s3);
+}
+
+.style-option.selected {
+	outline: 4px solid var(--focus);
+	outline-offset: -6px;
+}
+
+.style-option:has(:focus-visible) {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+.style-option .hint {
+	margin: 0;
+}
+
+.style-name {
+	font-weight: 600;
+}
+
+/* Previews set their own data-style, so they pick up that style's fonts and shapes. */
+.style-preview {
+	display: block;
+	margin-bottom: 6px;
+	padding: 10px;
+	font-family: var(--sans);
+	color: var(--text);
+	background: var(--well);
+	pointer-events: none;
+}
+
+.preview-window {
+	border-radius: var(--radius);
+	overflow: hidden;
+	display: block;
+	background: var(--s1);
+	border: var(--bw) solid var(--line);
+	box-shadow: var(--surface-shadow);
+}
+
+.preview-head {
+	display: block;
+	padding: 6px 8px 4px;
+	font-family: var(--display);
+	font-size: var(--display-size);
+	font-weight: var(--display-weight);
+	line-height: 1.1;
+	text-shadow: var(--text-shadow);
+	color: var(--head-fg);
+	background: var(--head-bg);
+	border-bottom: var(--bw) solid var(--line);
+}
+
+.preview-body {
+	display: flex;
+	gap: 6px;
+	padding: 8px;
+}
+
+.preview-body .btn {
+	flex: 1;
+	padding-left: 4px;
+	padding-right: 4px;
 }
 
 /* Carries the attributes of a palette (data-palette ...) without taking part in the layout. */
