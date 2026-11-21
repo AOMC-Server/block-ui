@@ -1,0 +1,73 @@
+/*
+ * An example of an app palette: the Nether, for the demo. An app adds a palette by defining the
+ * same tokens as the overworld ones in css/tokens.css, once per mode; nothing else is needed.
+ */
+[data-palette="nether"][data-mode="dark"] {
+	--ink: #1a0a0a;
+	--well: #1a0a0a;
+	--s1: #2e1414;
+	--s2: #431c1c;
+	--s3: #552424;
+	--s4: #6e3030;
+	--card-lo: #331414;
+	--sheen: rgba(255, 220, 200, 0.07);
+	--text: #ffffff;
+	--muted: #d4b4ac;
+	--faint: #a37f77;
+	--focus: #ffffff;
+
+	--light: #e3d4c6;
+	--light-hover: #f1e6dc;
+	--light-hi: #f8f1ea;
+	--light-lo: #7a5a4a;
+	--accent: #167e86;
+	--accent-hover: #0f5f66;
+	--accent-hi: #2aa5ad;
+	--accent-lo: #0a3f44;
+	--chrome: #9e2323;
+	--yellow: #ffcf5c;
+	--link: #5fd6d6;
+	--ok: #5fd6d6;
+	--err: #ff8a7a;
+
+	--shadow: rgba(0, 0, 0, 0.4);
+	--backdrop: rgba(20, 6, 6, 0.75);
+	--arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 4' shape-rendering='crispEdges'%3E%3Cpath fill='%23ffffff' d='M0 0h7v1H0zM1 1h5v1H1zM2 2h3v1H2zM3 3h1v1H3z'/%3E%3C/svg%3E");
+
+	color-scheme: dark;
+}
+
+[data-palette="nether"][data-mode="light"] {
+	--ink: #2a1010;
+	--well: #fbf4f1;
+	--s1: #e3cfc8;
+	--s2: #eddcd6;
+	--s3: #f5e9e5;
+	--s4: #a07870;
+	--card-lo: #c4a69e;
+	--sheen: rgba(255, 255, 255, 0.6);
+	--text: #2a1010;
+	--muted: #5c3a34;
+	--faint: #7d5d56;
+	--focus: #2a1010;
+
+	--light: #f6ece6;
+	--light-hover: #ffffff;
+	--light-hi: #ffffff;
+	--light-lo: #a07870;
+	--accent: #12707a;
+	--accent-hover: #0c565e;
+	--accent-hi: #23959e;
+	--accent-lo: #08393e;
+	--chrome: #a52a2a;
+	--yellow: #8a5a00;
+	--link: #0f6a70;
+	--ok: #0f6a70;
+	--err: #b3261e;
+
+	--shadow: rgba(42, 16, 16, 0.25);
+	--backdrop: rgba(42, 16, 16, 0.45);
+	--arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 4' shape-rendering='crispEdges'%3E%3Cpath fill='%232a1010' d='M0 0h7v1H0zM1 1h5v1H1zM2 2h3v1H2zM3 3h1v1H3z'/%3E%3C/svg%3E");
+
+	color-scheme: light;
+}

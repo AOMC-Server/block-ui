@@ -1,0 +1,6 @@
+/* The Minecraft pixel font. The url is relative to this file, so bundlers pick the font up. */
+@font-face {
+	font-family: "Minecraft";
+	src: url("../fonts/Minecraft.ttf");
+	font-display: swap;
+}

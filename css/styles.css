@@ -1,0 +1,280 @@
+/* ---------------------------------------------------------------------------------------------
+ * Style details that the tokens can't express. Each block is scoped to its data-style and stops
+ * at any nested data-style, so a preview that sets its own data-style shows its own style.
+ * Only generic components are listed; an app adds its own selectors in its own @scope blocks.
+ * ------------------------------------------------------------------------------------------- */
+@scope ([data-style="win98"]) to ([data-style]) {
+	/* Windows: a raised frame with the title bar inset in it. */
+	.panel,
+	.modal {
+		padding: 3px;
+	}
+
+	.panel-head,
+	.modal-head {
+		min-height: 0;
+		padding: 4px 4px 4px 8px;
+		box-shadow: none;
+	}
+
+	.page-head {
+		color: var(--head-fg);
+		background: var(--head-bg);
+	}
+
+	/* The square close button at the end of a title bar. */
+	.panel-head .btn.close,
+	.modal-head .btn.close {
+		width: 24px;
+		min-height: 22px;
+		font-size: 14px;
+		font-weight: 700;
+	}
+
+	/* Buttons are the surface colour, raised, and sink while pressed. */
+	.btn:not(.primary, .active, .danger) {
+		--bg: var(--s1);
+		--bg-hover: var(--s1);
+		color: var(--text);
+	}
+
+	.btn,
+	.tab {
+		box-shadow: var(--bevel-out);
+	}
+
+	.btn:active:not(:disabled) {
+		box-shadow: var(--bevel-in);
+	}
+
+	.btn:disabled {
+		background-color: var(--s1);
+		box-shadow: var(--bevel-out);
+		text-shadow: 1px 1px 0 var(--bevel-light);
+	}
+
+	.btn:focus-visible {
+		outline: 1px dotted currentColor;
+		outline-offset: -5px;
+	}
+
+	.tabbar .btn:not(.active),
+	.segmented .btn:not(.active),
+	.tab:not(.active) {
+		box-shadow: none;
+	}
+
+	/* Cards are raised too; what sits inside them is sunk. */
+	.card.inner,
+	.tile,
+	.toggle {
+		box-shadow: var(--bevel-out);
+	}
+
+	input:is(
+		:not([type]),
+		[type="text"],
+		[type="search"],
+		[type="number"],
+		[type="password"],
+		[type="email"],
+		[type="url"],
+		[type="tel"],
+		[type="date"],
+		[type="datetime-local"],
+		[type="time"]
+	),
+	textarea,
+	select,
+	code,
+	.segmented,
+	.progress,
+	.bossbar-track,
+	.preview-select-button {
+		box-shadow: var(--bevel-in);
+	}
+
+	input.switch,
+	input[type="range"] {
+		box-shadow: var(--bevel-in);
+	}
+
+	input.switch::before {
+		background: var(--s1);
+		box-shadow: var(--bevel-out);
+	}
+
+	input[type="range"]::-webkit-slider-thumb {
+		background: var(--s1);
+		box-shadow: var(--bevel-out);
+	}
+
+	input[type="range"]::-moz-range-thumb {
+		background: var(--s1);
+		box-shadow: var(--bevel-out);
+	}
+
+	/* Tooltips are the classic pale yellow. */
+	.tooltip {
+		--muted: #444;
+		color: #000;
+		background: color-mix(in srgb, var(--tip-tint, #ffffe1) 27%, #ffffe1);
+		border: 1px solid #000;
+		box-shadow: none;
+	}
+
+	.tip-key {
+		background: #ecebc9;
+	}
+
+	/* The desktop: teal in the overworld, and a mix of the palette's two colours elsewhere. */
+	.page-root {
+		background: color-mix(in srgb, var(--accent), var(--chrome));
+	}
+}
+
+@scope ([data-style="xp"]) to ([data-style]) {
+	/* Windows: a frame in the chrome colour around a title bar, rounded at the top only. */
+	.panel,
+	.modal {
+		border: 3px solid var(--chrome);
+		border-radius: 8px 8px 0 0;
+	}
+
+	.panel-head,
+	.modal-head,
+	.page-head {
+		text-shadow: 1px 1px 0 color-mix(in srgb, var(--chrome), #000 55%);
+		border-bottom-color: transparent;
+	}
+
+	.page-head {
+		color: var(--head-fg);
+		background: var(--head-bg);
+		border-bottom: 0;
+	}
+
+	/* The red close button of a title bar. */
+	.panel-head .btn.close,
+	.modal-head .btn.close {
+		--bg: #d9532c;
+		--bg-hover: #e8714d;
+		color: #fff;
+		text-shadow: none;
+		border-color: #fff;
+	}
+
+	/* Glossy buttons that light up orange under the pointer. */
+	.btn:hover:not(:disabled) {
+		box-shadow:
+			inset 0 0 0 1px #fde49a,
+			inset 0 -2px 0 #f0a524;
+	}
+
+	.btn:active:not(:disabled) {
+		background-image: linear-gradient(
+			rgba(0, 0, 0, 0.14),
+			rgba(255, 255, 255, 0.12)
+		);
+		box-shadow: none;
+	}
+
+	.tooltip {
+		--muted: #444;
+		color: #000;
+		background: color-mix(in srgb, var(--tip-tint, #ffffe1) 27%, #ffffe1);
+		border: 1px solid #000;
+		box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.35);
+	}
+
+	.tip-key {
+		background: #ecebc9;
+	}
+
+	/* A sky over a rolling hill. */
+	.page-root {
+		background:
+			radial-gradient(
+				140% 60% at 25% 105%,
+				var(--accent-hi),
+				var(--accent) 55%,
+				transparent 55.5%
+			),
+			linear-gradient(
+				var(--chrome),
+				color-mix(in srgb, var(--chrome), #fff 60%) 80%
+			);
+	}
+}
+
+@scope ([data-style="modern"]) to ([data-style]) {
+	.btn {
+		border-color: transparent;
+		transition:
+			background-color 0.12s,
+			transform 0.06s;
+	}
+
+	.btn:not(.primary, .active, .danger) {
+		--bg: var(--s3);
+		--bg-hover: color-mix(in srgb, var(--s3), var(--text) 10%);
+		color: var(--text);
+	}
+
+	.btn:active:not(:disabled) {
+		transform: translateY(1px);
+	}
+
+	/* Frosted glass. */
+	.panel,
+	.bossbar,
+	.toast {
+		background: color-mix(in srgb, var(--s1) 86%, transparent);
+		backdrop-filter: blur(16px) saturate(1.4);
+	}
+
+	.modal-backdrop {
+		backdrop-filter: blur(6px);
+	}
+
+	input:is(
+		:not([type]),
+		[type="text"],
+		[type="search"],
+		[type="number"],
+		[type="password"],
+		[type="email"],
+		[type="url"],
+		[type="tel"],
+		[type="date"],
+		[type="datetime-local"],
+		[type="time"]
+	),
+	textarea,
+	select {
+		box-shadow: none;
+	}
+
+	input:is(
+		:not([type]),
+		[type="text"],
+		[type="search"],
+		[type="number"],
+		[type="password"],
+		[type="email"],
+		[type="url"],
+		[type="tel"],
+		[type="date"],
+		[type="datetime-local"],
+		[type="time"]
+	):focus,
+	textarea:focus,
+	select:focus {
+		border-color: var(--accent-hi);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+	}
+
+	.page-root {
+		background: var(--well);
+	}
+}

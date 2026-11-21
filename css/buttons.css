@@ -1,0 +1,205 @@
+/* ---------------------------------------------------------------------------------------------
+ * Buttons: light by default, green for the main action, red for destructive ones.
+ * Works on <button> and <a>.
+ * ------------------------------------------------------------------------------------------- */
+.btn {
+	border-radius: var(--radius-sm);
+	--bg: var(--light);
+	--bg-hover: var(--light-hover);
+	--hi: var(--light-hi);
+	--lo: var(--light-lo);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 40px;
+	padding: 0 16px var(--depth);
+	font: 600 15px / 1 var(--sans);
+	color: var(--ink);
+	text-decoration: none;
+	text-shadow: var(--text-shadow);
+	white-space: nowrap;
+	background-color: var(--bg);
+	background-image: var(--btn-face);
+	border: var(--bw) solid var(--line);
+	box-shadow:
+		inset var(--edge-lo) 0 var(--lo),
+		inset var(--edge-hi) 0 var(--hi);
+	cursor: pointer;
+	user-select: none;
+}
+
+.btn:hover {
+	background-color: var(--bg-hover);
+}
+
+.btn:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+/* Pressed: the depth edge goes away and the face sinks into its place. */
+.btn:active {
+	padding-top: var(--depth);
+	padding-bottom: 0;
+	box-shadow: inset var(--edge-press) 0 var(--lo);
+}
+
+.btn.primary,
+.btn.active {
+	--bg: var(--accent);
+	--bg-hover: var(--accent-hover);
+	--hi: var(--accent-hi);
+	--lo: var(--accent-lo);
+	color: var(--on-accent);
+}
+
+.btn.danger {
+	--bg: var(--danger);
+	--bg-hover: var(--danger-hover);
+	--hi: var(--danger-hi);
+	--lo: var(--danger-lo);
+	color: var(--on-accent);
+}
+
+.btn:disabled,
+.btn:disabled:hover,
+.btn:disabled:active {
+	color: var(--faint);
+	background-color: var(--s2);
+	box-shadow: inset var(--edge-lo) 0 var(--card-lo);
+	padding-top: 0;
+	padding-bottom: var(--depth);
+	cursor: default;
+}
+
+.btn.small {
+	min-height: 32px;
+	padding: 0 10px var(--depth);
+	font-size: 14px;
+}
+
+.btn.small:active {
+	padding: var(--depth) 10px 0;
+}
+
+.btn.close {
+	width: 32px;
+	padding: 0 0 var(--depth);
+	font-size: 18px;
+}
+
+.btn.wide {
+	width: 100%;
+}
+
+/* Buttons that look like plain text; add the specifics in the class that uses them. */
+.plain {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	text-align: inherit;
+}
+
+/* A text-like action next to other content. */
+.link {
+	margin-left: 8px;
+	color: var(--muted);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.link:hover {
+	color: var(--text);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Segmented controls and tabs. A tray holding a row of buttons; only the selected one is raised.
+ * ------------------------------------------------------------------------------------------- */
+.tabbar,
+.segmented {
+	border-radius: var(--radius-sm);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 4px;
+	background: var(--well);
+}
+
+.segmented .btn {
+	flex: 1;
+}
+
+/* A fieldset around a segmented control (Segmented): no frame of its own. */
+.segmented-set {
+	width: fit-content;
+	max-width: 100%;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+/* Page-level tabs: a raised tray (Tabs). Items are .tab, a button or a link with class "plain". */
+.tabs {
+	border-radius: var(--radius-sm);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	width: fit-content;
+	max-width: 100%;
+	padding: 4px;
+	background: var(--s1);
+	border: var(--bw) solid var(--line);
+	box-shadow: var(--surface-shadow);
+}
+
+.tabs.center {
+	margin-inline: auto;
+}
+
+.tab {
+	border-radius: var(--radius-sm);
+	display: inline-flex;
+	align-items: center;
+	min-height: 40px;
+	padding: 0 18px var(--depth);
+	font: 600 15px / 1 var(--sans);
+	color: var(--ink);
+	text-decoration: none;
+	text-shadow: var(--text-shadow);
+	background: var(--light);
+	border: var(--bw) solid var(--line);
+	box-shadow:
+		inset var(--edge-lo) 0 var(--light-lo),
+		inset var(--edge-hi) 0 var(--light-hi);
+	cursor: pointer;
+	user-select: none;
+}
+
+.tabbar .btn:not(.active),
+.segmented .btn:not(.active),
+.tab:not(.active) {
+	color: var(--text);
+	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
+}
+
+.tabbar .btn:not(.active):hover,
+.segmented .btn:not(.active):hover,
+.tab:not(.active):hover {
+	background: var(--s2);
+}
+
+.tabbar .btn.active,
+.segmented .btn.active {
+	--bg: var(--light);
+	--bg-hover: var(--light);
+	--hi: var(--light-hi);
+	--lo: var(--light-lo);
+	color: var(--ink);
+}

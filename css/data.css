@@ -1,0 +1,296 @@
+/* ---------------------------------------------------------------------------------------------
+ * Tables: <div class="table-wrap"><table class="table"> ... </table></div>
+ * `.num` right-aligns a numeric column, `tr.click` makes a row clickable, `th > button.sort` is a
+ * sortable header (SortTh), `.pager` pages through the rows.
+ * ------------------------------------------------------------------------------------------- */
+.table-wrap {
+	overflow-x: auto;
+	background: var(--s1);
+	border: var(--bw) solid var(--line);
+}
+
+.table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.table th,
+.table td {
+	padding: 7px 10px;
+	text-align: left;
+	vertical-align: top;
+	border-bottom: 1px solid var(--s2);
+}
+
+.table th {
+	position: sticky;
+	top: 0;
+	font-size: 13px;
+	color: var(--muted);
+	background: var(--s2);
+	white-space: nowrap;
+}
+
+.table .num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.table .rank {
+	width: 1%;
+	color: var(--muted);
+}
+
+.table .actions {
+	display: flex;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+.table .muted-cell {
+	font-style: italic;
+	color: var(--muted);
+}
+
+.table.compact th,
+.table.compact td {
+	padding: 6px 8px;
+}
+
+.table.nowrap td {
+	white-space: nowrap;
+}
+
+.table tbody tr:hover {
+	background: var(--card-lo);
+}
+
+.table tr.click {
+	cursor: pointer;
+}
+
+/* The row of the signed-in user, or any row to point out. */
+.table tr.me td {
+	background: var(--s2);
+}
+
+.table .sort {
+	font-weight: inherit;
+	white-space: nowrap;
+	color: var(--muted);
+}
+
+.table .sort:hover,
+.table .sort.active {
+	color: var(--text);
+}
+
+.pager {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+}
+
+.table-wrap + .pager {
+	margin-top: 10px;
+}
+
+/* A bar showing a share of a total, next to its number. */
+.share-bar {
+	display: inline-block;
+	width: 80px;
+	height: 8px;
+	vertical-align: middle;
+	background: var(--well);
+	border: 1px solid var(--line);
+}
+
+.share-fill {
+	display: block;
+	height: 100%;
+	background: var(--chart-1);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Avatars and dots
+ * ------------------------------------------------------------------------------------------- */
+.avatar {
+	--avatar-size: 32px;
+	border-radius: var(--radius-sm);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: var(--avatar-size);
+	height: var(--avatar-size);
+	background: var(--s3);
+	border: var(--bw) solid var(--line);
+	object-fit: cover;
+}
+
+img.avatar {
+	image-rendering: pixelated;
+}
+
+/* Initials on a colour picked from the name. */
+.avatar.initials {
+	font-family: var(--display);
+	font-size: calc(var(--avatar-size) * 0.55);
+	color: var(--on-accent);
+	text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+	border-width: 1px;
+}
+
+.avatar.round {
+	border-radius: 50%;
+}
+
+.dot {
+	display: inline-block;
+	flex: none;
+	width: 10px;
+	height: 10px;
+	border: 1px solid var(--line);
+}
+
+.dots,
+.dot-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Charts (Chart)
+ * ------------------------------------------------------------------------------------------- */
+.chart-box {
+	position: relative;
+}
+
+.chart-svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	touch-action: pan-y;
+}
+
+.chart-grid {
+	stroke: var(--s2);
+	stroke-width: 1;
+}
+
+.chart-cursor {
+	stroke: var(--muted);
+	stroke-width: 1;
+	stroke-dasharray: 3 3;
+}
+
+.chart-label {
+	font: 11px var(--sans);
+	fill: var(--muted);
+}
+
+.chart-tip {
+	position: absolute;
+	top: 8px;
+	z-index: 1;
+	width: max-content;
+	min-width: 160px;
+	max-width: calc(100% - 20px);
+	padding: 6px 10px;
+	font-size: 13px;
+	background: var(--s1);
+	border: var(--bw) solid var(--line);
+	box-shadow: var(--surface-shadow);
+	pointer-events: none;
+}
+
+.chart-tip-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.chart-tip-value {
+	margin-left: auto;
+	padding-left: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+.chart-swatch {
+	display: inline-block;
+	flex: none;
+	width: 10px;
+	height: 10px;
+	margin-right: 4px;
+	border: 1px solid var(--line);
+}
+
+.chart-tip-row .chart-swatch {
+	margin-right: 0;
+}
+
+.chart-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+	margin-top: 6px;
+	font-size: 13px;
+	color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Reordering (Grip, reorder.ts): the handle, and the classes the drag adds to the list items.
+ * ------------------------------------------------------------------------------------------- */
+.grip {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 20px;
+	height: 32px;
+	margin-left: -4px;
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+}
+
+.grip-dots {
+	width: 8px;
+	height: 14px;
+	background:
+		radial-gradient(circle, var(--faint) 1.5px, transparent 2px) 0 0 / 4px
+		4.67px;
+}
+
+.grip:hover .grip-dots,
+.grip:focus-visible .grip-dots {
+	background:
+		radial-gradient(circle, var(--text) 1.5px, transparent 2px) 0 0 / 4px 4.67px;
+}
+
+.grip:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: -2px;
+}
+
+.sliding {
+	transition: transform 0.12s ease-out;
+}
+
+.dragging {
+	position: relative;
+	z-index: 2;
+	cursor: grabbing;
+	background: var(--s3);
+	box-shadow: var(--surface-shadow);
+	transition: none;
+}
+
+/* A list that another list's item is being dragged over (data-drop-target). */
+.drop-target {
+	outline: 2px solid var(--accent-hi);
+	outline-offset: -2px;
+}

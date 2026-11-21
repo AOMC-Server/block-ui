@@ -1,0 +1,303 @@
+/*
+ * Design tokens: the colours (palette + mode) and the shapes (style) of the interface.
+ *
+ * Three attributes on <html> (or any element, to preview another look) combine:
+ * - data-mode="dark|light"
+ * - data-palette="<name>": the colours. This library ships "overworld", the default, which also
+ *   applies when there is no data-palette. Apps add palettes with the same two selectors:
+ *   [data-palette="nether"][data-mode="dark"] { ... } and the light one. See README.
+ * - data-style="bedrock|win98|xp|modern": the shapes. Styles only use the colour tokens, so any
+ *   style works with any palette.
+ * Tokens derived from the mode and the style are worked out where they are declared, so an
+ * element that carries its own data-palette must repeat data-mode and data-style (see
+ * paletteScope() in theme).
+ */
+
+:root {
+	/* Size of the pixel font; installFontScale() sets it from the device pixel ratio. */
+	--fs-display: 24px;
+
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+
+	--danger: #c33636;
+	--danger-hover: #ad1d1d;
+	--danger-hi: #e25858;
+	--danger-lo: #6e1717;
+	/* Warnings and things in progress (badges); text on it is --on-warn. */
+	--warn: #c9a400;
+	--on-warn: #1e1e1f;
+	/* Text on accent, danger and avatar colours. */
+	--on-accent: #ffffff;
+
+	/* Backgrounds of initials avatars, picked by a hash of the name. White text reads on all. */
+	--avatar-1: #52a535;
+	--avatar-2: #3fc3ef;
+	--avatar-3: #f9801d;
+	--avatar-4: #d150c6;
+	--avatar-5: #c9a400;
+	--avatar-6: #e1372e;
+	--avatar-7: #8c7bff;
+	--avatar-8: #1ccfc0;
+
+	/* Boss bar fills, and the caution stripes of a maintenance bar. */
+	--bossbar-yellow: #e8c41a;
+	--bossbar-purple: #a23ee0;
+	--stripe-a: #e8c41a;
+	--stripe-b: #1e1e1e;
+
+	/* Standalone pages: how wide the content gets. */
+	--page-max: 760px;
+
+	/* Where the toast stack sits; an app can move it clear of its own chrome. */
+	--toast-bottom: calc(var(--safe-bottom) + 16px);
+	--toast-left: auto;
+	--toast-right: 16px;
+	--toast-align: flex-end;
+
+	/* Series colours of the charts. */
+	--chart-1: #4aa3df;
+	--chart-2: #52a535;
+	--chart-3: #e8a33d;
+	--chart-4: #c55ad6;
+	--chart-5: #e05d5d;
+	--chart-6: #8c8d90;
+	--chart-7: #d6c84a;
+
+	scrollbar-color: var(--s4) var(--well);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Overworld, the default palette. Dark: Java Edition's dark greys with Creeper green.
+ * ------------------------------------------------------------------------------------------- */
+:root,
+[data-palette="overworld"][data-mode="dark"] {
+	/* Surfaces: the outline colour, recessed wells (inputs, trays, slots), then layers s1-s4. */
+	--ink: #1e1e1f;
+	--well: #1e1e1f;
+	--s1: #313233;
+	--s2: #48494a;
+	--s3: #58585a;
+	--s4: #6d6d6f;
+	/* Depth edge along the bottom of cards, and the highlight along their top. */
+	--card-lo: #3a3b3c;
+	--sheen: rgba(255, 255, 255, 0.07);
+	--text: #ffffff;
+	--muted: #b1b2b5;
+	--faint: #8c8d90;
+	/* Focus rings and selected states. */
+	--focus: #ffffff;
+
+	--light: #d0d1d4;
+	--light-hover: #e6e8eb;
+	--light-hi: #ecedee;
+	--light-lo: #58585a;
+	--accent: #3c8527;
+	--accent-hover: #2a641c;
+	--accent-hi: #52a535;
+	--accent-lo: #1d4d13;
+	/* A second, bolder colour: the title bars of the Windows XP and 98 styles. */
+	--chrome: #2458c8;
+	--yellow: #ffe866;
+	--link: #7ed957;
+	--ok: #7ed957;
+	--err: #ff7b7b;
+
+	--shadow: rgba(0, 0, 0, 0.35);
+	--backdrop: rgba(16, 16, 17, 0.72);
+	--arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 4' shape-rendering='crispEdges'%3E%3Cpath fill='%23ffffff' d='M0 0h7v1H0zM1 1h5v1H1zM2 2h3v1H2zM3 3h1v1H3z'/%3E%3C/svg%3E");
+
+	color-scheme: dark;
+}
+
+/* Overworld, light: Java Edition's inventory grey, close to Windows' button face. */
+[data-palette="overworld"][data-mode="light"],
+[data-mode="light"]:not([data-palette]) {
+	--ink: #1e1e1f;
+	--well: #f4f4f4;
+	--s1: #c6c6c6;
+	--s2: #d6d6d6;
+	--s3: #e4e4e4;
+	--s4: #8b8b8b;
+	--card-lo: #a8a8a8;
+	--sheen: rgba(255, 255, 255, 0.7);
+	--text: #1e1e1f;
+	--muted: #4d4d50;
+	--faint: #707074;
+	--focus: #1e1e1f;
+
+	--light: #ededed;
+	--light-hover: #ffffff;
+	--light-hi: #ffffff;
+	--light-lo: #8b8b8b;
+	--accent: #3c8527;
+	--accent-hover: #2a641c;
+	--accent-hi: #52a535;
+	--accent-lo: #1d4d13;
+	--chrome: #2458c8;
+	--yellow: #8a6500;
+	--link: #2f6f1f;
+	--ok: #2f6f1f;
+	--err: #b3261e;
+
+	--shadow: rgba(0, 0, 0, 0.25);
+	--backdrop: rgba(40, 40, 40, 0.5);
+	--arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 4' shape-rendering='crispEdges'%3E%3Cpath fill='%231e1e1f' d='M0 0h7v1H0zM1 1h5v1H1zM2 2h3v1H2zM3 3h1v1H3z'/%3E%3C/svg%3E");
+
+	color-scheme: light;
+}
+
+/* Bedrock / minecraft.net: flat layers, thick dark outlines, a solid depth edge under buttons. */
+:root,
+[data-style="bedrock"] {
+	--sans:
+		"Noto Sans", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue",
+		Arial, sans-serif;
+	--display: "Minecraft", ui-monospace, monospace;
+	--display-size: var(--fs-display);
+	--display-weight: normal;
+	--text-shadow: none;
+
+	/* Containers (panels, cards) and controls (buttons, inputs); toggles have their own. */
+	--radius: 0;
+	--radius-sm: 0;
+	--toggle-radius: 0;
+	--toggle-mark: block;
+	--bw: 2px;
+	--line: var(--ink);
+
+	/*
+	 * Raised things (buttons, cards) have a dark edge below and a light one along the top and
+	 * left, as box-shadow offsets; pressed buttons show only the dark one at --edge-press.
+	 * --depth is the room the bottom edge takes, which a pressed button's label moves into.
+	 */
+	--edge-lo: 0 -4px;
+	--edge-hi: 2px 2px;
+	--edge-press: 0 2px;
+	--depth: 4px;
+	/* Drawn over a button's colour. */
+	--btn-face: none;
+
+	/* Floating layers have a light top-left edge and sit on a solid shadow rather than a blur. */
+	--surface-shadow: inset 2px 2px 0 var(--bevel-soft), 0 4px 0 var(--shadow);
+	--head-bg: var(--s2);
+	--head-fg: var(--text);
+}
+
+/* Light bevel edges, softened in dark mode where pure white would glare. */
+:root,
+[data-mode="dark"] {
+	--bevel-light: rgba(255, 255, 255, 0.32);
+	--bevel-soft: rgba(255, 255, 255, 0.12);
+}
+
+[data-mode="light"] {
+	--bevel-light: #ffffff;
+	--bevel-soft: rgba(255, 255, 255, 0.55);
+}
+
+/*
+ * Windows 98: no outlines; everything is a 3D bevel instead, raised (buttons, windows) or sunk
+ * (fields, wells). Gradient title bars inset in the window frame.
+ */
+[data-style="win98"] {
+	--sans:
+		"Microsoft Sans Serif", "MS Sans Serif", Tahoma, Arial, system-ui,
+		sans-serif;
+	--display: var(--sans);
+	--display-size: 16px;
+	--display-weight: 700;
+	--text-shadow: none;
+
+	--radius: 0;
+	--radius-sm: 0;
+	--toggle-radius: 0;
+	--toggle-mark: none;
+	--bw: 0px;
+	--line: #000;
+
+	--edge-lo: 0 0;
+	--edge-hi: 0 0;
+	--edge-press: 0 0;
+	--depth: 0px;
+	--btn-face: none;
+
+	--bevel-out:
+		inset -1px -1px 0 rgba(0, 0, 0, 0.85), inset 1px 1px 0 var(--bevel-light),
+		inset -2px -2px 0 rgba(0, 0, 0, 0.3), inset 2px 2px 0 var(--bevel-soft);
+	--bevel-in:
+		inset 1px 1px 0 rgba(0, 0, 0, 0.3), inset -1px -1px 0 var(--bevel-light),
+		inset 2px 2px 0 rgba(0, 0, 0, 0.85), inset -2px -2px 0 var(--bevel-soft);
+	--surface-shadow: var(--bevel-out);
+	--head-bg: linear-gradient(
+		90deg,
+		color-mix(in srgb, var(--chrome), #000 50%),
+		color-mix(in srgb, var(--chrome), #fff 25%)
+	);
+	--head-fg: #ffffff;
+}
+
+/* Windows XP (Luna): glossy title bars in the palette's chrome colour, soft corners, Tahoma. */
+[data-style="xp"] {
+	--sans: Tahoma, Verdana, "Segoe UI", system-ui, sans-serif;
+	--display: "Trebuchet MS", Tahoma, Verdana, system-ui, sans-serif;
+	--display-size: 17px;
+	--display-weight: 700;
+	--text-shadow: none;
+
+	--radius: 6px;
+	--radius-sm: 3px;
+	--toggle-radius: 3px;
+	--toggle-mark: none;
+	--bw: 1px;
+	--line: color-mix(in srgb, var(--chrome) 55%, #000);
+
+	--edge-lo: 0 0;
+	--edge-hi: 0 0;
+	--edge-press: 0 0;
+	--depth: 0px;
+	--btn-face: linear-gradient(
+		rgba(255, 255, 255, 0.55),
+		rgba(255, 255, 255, 0) 45%,
+		rgba(0, 0, 0, 0.06) 85%,
+		rgba(0, 0, 0, 0.16)
+	);
+
+	--surface-shadow: 2px 3px 8px var(--shadow);
+	--head-bg: linear-gradient(
+		color-mix(in srgb, var(--chrome), #fff 30%),
+		var(--chrome) 20%,
+		color-mix(in srgb, var(--chrome), #000 6%) 80%,
+		color-mix(in srgb, var(--chrome), #000 28%)
+	);
+	--head-fg: #ffffff;
+}
+
+/* Modern: rounded corners, hairline borders, blurred shadows and frosted panels. */
+[data-style="modern"] {
+	--sans:
+		system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue",
+		Arial, sans-serif;
+	--display: var(--sans);
+	--display-size: 20px;
+	--display-weight: 650;
+	--text-shadow: none;
+
+	--radius: 14px;
+	--radius-sm: 9px;
+	--toggle-radius: 999px;
+	--toggle-mark: none;
+	--bw: 1px;
+	--line: color-mix(in srgb, var(--text) 14%, transparent);
+
+	--edge-lo: 0 0;
+	--edge-hi: 0 0;
+	--edge-press: 0 0;
+	--depth: 0px;
+	--btn-face: none;
+
+	--surface-shadow:
+		0 12px 32px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.16);
+	--head-bg: transparent;
+	--head-fg: var(--text);
+}

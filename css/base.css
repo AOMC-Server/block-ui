@@ -1,0 +1,180 @@
+/*
+ * Reset, document defaults, typography and small utility classes. Nothing here positions the
+ * app: an app shell decides whether the body scrolls (blockmap sets overflow: hidden itself).
+ */
+* {
+	box-sizing: border-box;
+}
+
+[hidden] {
+	display: none !important;
+}
+
+html,
+body {
+	margin: 0;
+	min-height: 100%;
+	background: var(--well);
+	color: var(--text);
+	font: 15px / 1.45 var(--sans);
+}
+
+h1,
+h2,
+h3 {
+	margin: 0;
+	font-family: var(--display);
+	font-size: var(--display-size);
+	font-weight: var(--display-weight);
+	line-height: 1.1;
+	text-shadow: var(--text-shadow);
+}
+
+a {
+	color: var(--link);
+}
+
+code {
+	border-radius: var(--radius-sm);
+	padding: 1px 5px;
+	font-size: 13px;
+	background: var(--well);
+	border: 1px solid var(--s3);
+	word-break: break-all;
+}
+
+.mono {
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 13px;
+}
+
+/* Pixel art (avatars, block icons) must not be smoothed when scaled. */
+.pixelated,
+.pixel-icon {
+	image-rendering: pixelated;
+	flex: none;
+}
+
+.pixel-icon {
+	display: block;
+}
+
+:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--well);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--s4);
+	border: var(--bw) solid var(--line);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Text utilities
+ * ------------------------------------------------------------------------------------------- */
+.muted {
+	color: var(--muted);
+}
+
+.faint {
+	color: var(--faint);
+}
+
+.hint {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+p.muted,
+p.hint,
+div.hint {
+	margin: 4px 0;
+}
+
+.small-text {
+	font-size: 13px;
+}
+
+.nowrap {
+	white-space: nowrap;
+}
+
+/* Long unbroken text (addresses, names) wraps instead of stretching its container. */
+.wrap {
+	max-width: 420px;
+	overflow-wrap: anywhere;
+}
+
+.success {
+	color: var(--ok);
+}
+
+.warn-text {
+	color: var(--yellow);
+}
+
+.error-text {
+	color: var(--err);
+}
+
+/* Dims content that is being refreshed (see Async). */
+.fade {
+	opacity: 0.6;
+	transition: opacity 0.15s;
+}
+
+/* Space around a loading or empty message. */
+.state {
+	padding: 16px 4px;
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* Small caps headers between groups, like the Bedrock settings screens. */
+.section-title {
+	margin: 20px 0 8px;
+	font: 700 12px / 1.2 var(--sans);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+/* Layout helpers */
+.group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.spacer {
+	flex: 1;
+}

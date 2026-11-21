@@ -1,0 +1,324 @@
+/* ---------------------------------------------------------------------------------------------
+ * Surfaces: cards, panels and the standalone page shell. Colours and shapes come from the tokens;
+ * nothing here positions a surface over an app (docks, map overlays): that is the app's job.
+ * ------------------------------------------------------------------------------------------- */
+
+/* Cards: a raised surface. Put `inner` on one inside another card, a panel or a page section. */
+.card {
+	border-radius: var(--radius);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	min-width: 0;
+	padding: 14px;
+	background: var(--s1);
+	border: var(--bw) solid var(--line);
+	box-shadow: var(--surface-shadow);
+}
+
+.card.inner {
+	background: var(--s2);
+	box-shadow:
+		inset var(--edge-lo) 0 var(--card-lo),
+		inset var(--edge-hi) 0 var(--sheen);
+}
+
+.card-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.card-foot {
+	display: flex;
+	gap: 8px;
+	margin-top: auto;
+}
+
+/* Buttons and other controls in the head of a card or page. */
+.page-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Panel: a window with a title bar, a scrolling body and an optional footer.
+ * ------------------------------------------------------------------------------------------- */
+.panel {
+	border-radius: var(--radius);
+	/* The header is flush with the top, so clip it to the corners. */
+	overflow: hidden;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	background: var(--s1);
+	border: var(--bw) solid var(--line);
+	box-shadow: var(--surface-shadow);
+}
+
+/* The edge of the panel that is dragged (or moved with the arrow keys) to change its width. */
+.panel-resize {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 3;
+	width: 8px;
+	cursor: ew-resize;
+	touch-action: none;
+}
+
+.panel-resize.right {
+	left: auto;
+	right: 0;
+}
+
+/* While dragging, keep the resize cursor and do not select text. */
+body.resizing {
+	cursor: ew-resize;
+	user-select: none;
+}
+
+.panel-resize:hover,
+.panel-resize:focus-visible {
+	background: color-mix(in srgb, var(--focus) 35%, transparent);
+	outline: none;
+}
+
+.panel-head,
+.modal-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 52px;
+	padding: 8px 8px 8px 14px;
+	color: var(--head-fg);
+	background: var(--head-bg);
+	border-bottom: var(--bw) solid var(--line);
+	box-shadow: inset var(--edge-hi) 0 var(--sheen);
+}
+
+.panel-head h2,
+.modal-head h2,
+.modal-head h1 {
+	flex: 1;
+	min-width: 0;
+	padding-top: 2px;
+}
+
+.panel-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: 4px 12px 12px;
+}
+
+.panel-foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px;
+	background: var(--s2);
+	border-top: var(--bw) solid var(--line);
+}
+
+@media (max-width: 640px) {
+	.panel-resize {
+		display: none;
+	}
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Page shell: a title bar (back link, title, actions), an optional banner, and the content
+ * centred in a column that is --page-max wide. Page is fixed to the window; `embedded` makes it
+ * an ordinary block that scrolls with whatever contains it (a page inside an app shell).
+ * ------------------------------------------------------------------------------------------- */
+.page-root {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	background:
+		linear-gradient(
+			color-mix(in srgb, var(--well) 92%, transparent),
+			color-mix(in srgb, var(--well) 92%, transparent)
+		),
+		repeating-linear-gradient(45deg, var(--s1) 0 16px, var(--well) 16px 32px);
+}
+
+.page-root.embedded {
+	position: relative;
+	inset: auto;
+	min-width: 0;
+	min-height: 100%;
+}
+
+.page-head {
+	position: relative;
+	z-index: 1;
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: calc(var(--safe-top) + 10px) 16px 10px;
+	background: var(--s1);
+	border-bottom: var(--bw) solid var(--line);
+	box-shadow: var(--surface-shadow);
+}
+
+.page-head h1 {
+	padding-top: 2px;
+}
+
+.page-head .page-actions {
+	margin-left: auto;
+}
+
+.page {
+	flex: 1;
+	overflow-y: auto;
+	padding: 24px 16px calc(var(--safe-bottom) + 32px);
+}
+
+.page-root.embedded .page {
+	overflow-y: visible;
+}
+
+.page-inner {
+	max-width: var(--page-max);
+	margin: 0 auto;
+}
+
+.page-section {
+	border-radius: var(--radius);
+	margin: 0 0 20px;
+	padding: 16px 18px 18px;
+	background: var(--s1);
+	border: var(--bw) solid var(--line);
+	box-shadow: var(--surface-shadow);
+}
+
+.page-section h2 {
+	margin-bottom: 10px;
+}
+
+.stack > .page-section {
+	margin: 0;
+}
+
+/* Two columns that collapse to one when there is no room. */
+.page-split {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
+	gap: 16px;
+	align-items: start;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Tiles: a number with its label, in a grid.
+ * ------------------------------------------------------------------------------------------- */
+.tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.tile {
+	border-radius: var(--radius);
+	min-width: 0;
+	padding: 10px 12px;
+	background: var(--s2);
+	border: var(--bw) solid var(--line);
+	box-shadow:
+		inset var(--edge-lo) 0 var(--card-lo),
+		inset var(--edge-hi) 0 var(--sheen);
+}
+
+.tile-label {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.tile-value {
+	font-family: var(--display);
+	font-size: var(--display-size);
+	font-weight: var(--display-weight);
+	line-height: 1.2;
+	color: var(--yellow);
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+
+.tile-hint {
+	margin: 2px 0 0;
+	font-size: 13px;
+	color: var(--muted);
+}
+
+/* Free-form grid of cards. */
+.grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+	gap: 16px;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Key-value list: <div class="kv"><span>Label</span><b>Value</b>...</div>
+ * ------------------------------------------------------------------------------------------- */
+.kv {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 2px 16px;
+	font-size: 14px;
+}
+
+.kv > span {
+	color: var(--muted);
+}
+
+.kv > b {
+	text-align: right;
+	font-weight: 600;
+}
+
+.kv.left > b {
+	text-align: left;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Small compositions: a secret shown once (ShownOnce) and rich text from PopupText.
+ * ------------------------------------------------------------------------------------------- */
+.shown-once {
+	border-radius: var(--radius);
+	margin: 12px 0;
+	padding: 12px 12px 16px;
+	background: var(--s2);
+	border: var(--bw) solid var(--accent-hi);
+	box-shadow:
+		inset var(--edge-lo) 0 var(--card-lo),
+		inset var(--edge-hi) 0 var(--sheen);
+}
+
+.shown-once p {
+	margin-top: 0;
+}
+
+/* An input with buttons beside it, wrapping on narrow screens. */
+.copy-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.copy-row input {
+	flex: 1 1 160px;
+	width: auto;
+}
+
+.popup-text {
+	word-break: break-word;
+}
