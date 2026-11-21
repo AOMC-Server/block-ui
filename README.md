@@ -13,10 +13,29 @@ It ships **TypeScript/TSX source**, no build step. Your bundler compiles it with
 
 ## Install
 
+The AOMC apps add the library as a git submodule and a workspace package, so it can be edited in place:
+
 ```sh
-bun add github:AOMC-Server/block-ui#v0.3.1
-bun add preact @preact/signals   # the peers, if the app does not have them yet
+git submodule add git@github.com:AOMC-Server/block-ui.git block-ui
 ```
+
+```jsonc
+// package.json (root)
+"workspaces": ["block-ui"],            // plus the app's own packages, if any
+"scripts": { "test": "bun test src" }, // list the app's directories so the library's tests are left out
+// package.json of the package with the web app
+"devDependencies": { "@aomc-server/block-ui": "workspace:*" }
+```
+
+The workspace gives one hoisted copy of `preact` and `@preact/signals` (the library's peers) for the app and the
+library. Exclude `block-ui` from the app's Biome `files.includes` (`"!block-ui"`); it has its own config.
+
+Working on the library from inside an app: the submodule is checked out at a fixed commit, so `git switch main` in
+`block-ui/` first, commit and push there, then commit the new submodule commit in the app. Another app picks the
+change up with `git submodule update --remote block-ui`. Clones need `git clone --recursive` (or
+`git submodule update --init`), and so does CI (`submodules: recursive` for `actions/checkout`).
+
+Without a submodule, `bun add github:AOMC-Server/block-ui#v0.3.1` works too.
 
 ## Setup
 
@@ -50,19 +69,9 @@ Vite needs almost nothing (verified with `vite build` and the dev server, from a
 `@preact/preset-vite`. Notes:
 
 - Apps need `@preact/preset-vite` (or `jsxImportSource: "preact"`) like any Preact app.
-- Only one copy of `preact` / `@preact/signals` may be installed; they are peers for that reason. A `file:` or
-  linked install brings the library's own copy in its `node_modules`, so tell Vite to use the app's:
-
-  ```ts
-  // vite.config.ts
-  export default defineConfig({
-  	resolve: { dedupe: ["preact", "@preact/signals"] },
-  });
-  ```
-
-  Without it the app and the library each get a preact, and signals and hooks silently stop working across the
-  boundary. (A registry or `github:` install has the peers hoisted next to the app and does not need it; it is
-  harmless there.)
+- Only one copy of `preact` / `@preact/signals` may be installed; they are peers for that reason. A workspace or
+  `github:` install gives one. A `file:` or linked install does not (the library's own copy comes along); add
+  `resolve: { dedupe: ["preact", "@preact/signals"] }` to the Vite config then.
 - When `vite.config.ts` itself imports library TypeScript (e.g. `prepaintScript` from `/theme`), Vite's default config
   loader cannot bundle it from `node_modules`. Use the runner loader: `vite --configLoader runner`,
   `vite build --configLoader runner` (put it in the package scripts, as the demo here does).
@@ -83,73 +92,17 @@ jsxImportSource = "preact"
 (top level, not under `[test]`). Tests of pure logic can avoid TSX altogether through the subpaths below
 (`/width`, `/reorder`, `/markdown`, `/menu`, `/format`, `/csv`, `/errors`, `/hooks`, `/theme`).
 
-**`file:` installs** (`"@aomc-server/block-ui": "file:../block-ui"`, the sibling checkout used while both apps and the
-library change together) are not links to the directory, but not a real copy either: `bun install` makes
-`node_modules/@aomc-server/block-ui` a tree of directories whose files are _symlinks_ into the checkout. Edits to
-existing files show up at once; after adding, removing or renaming files (or editing `package.json`) run
-`bun install` again in each app (in a Bun workspace, at the repository root). The install also adds the library's
-own `devDependencies` (biome, vite, typescript, happy-dom, …) to the app's lockfile; that is expected, and goes away
-with a registry or `github:` dependency.
-
-Bun resolves symlinks to their real path, so the library's files import `preact` and `@preact/signals` from
-`../block-ui/node_modules`, not from the app: **a second copy of both** under `bun test`. Signals then do not cross the
-boundary (an `effect` in the app does not rerun when a library signal such as `appearance` or `prefersLight` changes).
-Vite has the same problem and `resolve.dedupe` (above) is its fix. For Bun tests load the library's copies from the
-app's; in a preload file (`[test] preload` in `bunfig.toml`), with `ownModules` the app's `node_modules` directory:
-
-```ts
-// test-setup.ts
-import { join } from "node:path";
-import { plugin } from "bun";
-
-const ownModules = join(import.meta.dir, "node_modules");
-const escaped = ownModules.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const foreignPeers = new RegExp(
-	`^(?!${escaped}/).*/node_modules/(preact|@preact/signals(-core)?)/.*\\.m?js$`,
-);
-
-plugin({
-	name: "single-preact",
-	setup(build) {
-		build.onLoad({ filter: foreignPeers }, (args) => {
-			const rel = args.path.replace(/^.*\/node_modules\//, "");
-			return {
-				contents: `export * from ${JSON.stringify(`${ownModules}/${rel}`)};`,
-				loader: "js",
-			};
-		});
-	},
-});
-```
-
-(`onResolve` does not see the library's own imports in Bun, which is why this redirects the loaded files.) Nothing
-of this is needed with a registry or `github:` install, where the library sits inside the app's `node_modules` and
-the peers resolve to the app's copies, nor in a Bun workspace (one hoisted copy).
-
-**Docker.** A `file:` dependency points outside the app's build context. Give the build the sibling checkout as a
-named context and copy it to the same relative place the lockfile expects:
-
-```yaml
-# docker-compose.yml
-services:
-  app:
-    build:
-      context: .
-      additional_contexts:
-        block-ui: ../block-ui
-```
+**Docker.** With the submodule inside the app's build context, copy it in before `bun install` in the stage that
+builds the web app, and its `package.json` in a `--production` stage (the workspace has to be complete for
+`--frozen-lockfile`; the library is a devDependency, so nothing of it is installed there):
 
 ```dockerfile
-# Dockerfile: before `bun install`
-COPY --from=block-ui . /block-ui
+COPY package.json bun.lock ./
+COPY block-ui block-ui
+RUN bun install --frozen-lockfile
 ```
 
-With `WORKDIR /app`, `/block-ui` is where both `file:../block-ui` (an app with one package) and
-`file:../../block-ui` (a workspace package in `web/`) point, so the `package.json` stays as it is on the
-host. Only the stage that installs devDependencies and builds the web app needs it; a `--production` stage skips the
-library (it is a devDependency: the browser bundle is all the final image needs). The library has a `.dockerignore`
-(`node_modules`, `demo/dist`, `.git`) so that it is cheap as a build context. Once the dependency is `github:AOMC-Server/block-ui#vX.Y.Z` (or a
-registry version) none of this is needed, only `git` in the image for `github:`.
+Keep `**/node_modules` and `block-ui/demo/dist` in the app's `.dockerignore`.
 
 ### Before first paint
 

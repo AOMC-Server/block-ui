@@ -6,7 +6,7 @@ Per-app notes on moving to block-ui and between its versions. Not part of the pu
 ## 0.3.0 to 0.3.1
 
 Documentation only. `file:` installs are symlinked, not copied, and under `bun test` they give the library its own
-`preact` / `@preact/signals`; the README now explains it and has the preload that fixes it (see "`file:` installs").
+`preact` / `@preact/signals`; the preload that fixed it is no longer documented, because the apps now use the library as a submodule and workspace package (one copy).
 Apps that depend on the library through `file:` and test code that watches library signals (`appearance`,
 `prefersLight`) want that preload. No code change otherwise.
 
