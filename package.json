@@ -1,6 +1,6 @@
 {
 	"name": "@aomc-server/block-ui",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Blocky, Minecraft-inspired Preact UI components, styles and helpers shared by the AOMC apps.",
 	"license": "MIT",
 	"type": "module",

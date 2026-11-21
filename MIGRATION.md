@@ -3,6 +3,13 @@
 Per-app notes on moving to block-ui and between its versions. Not part of the published package;
 [README.md](README.md) is the reference.
 
+## 0.3.0 to 0.3.1
+
+Documentation only. `file:` installs are symlinked, not copied, and under `bun test` they give the library its own
+`preact` / `@preact/signals`; the README now explains it and has the preload that fixes it (see "`file:` installs").
+Apps that depend on the library through `file:` and test code that watches library signals (`appearance`,
+`prefersLight`) want that preload. No code change otherwise.
+
 ## 0.2.0 to 0.3.0
 
 Imports of removed names fail at build time; the rest are behaviour changes to look for.

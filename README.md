@@ -14,7 +14,7 @@ It ships **TypeScript/TSX source**, no build step. Your bundler compiles it with
 ## Install
 
 ```sh
-bun add github:AOMC-Server/block-ui#v0.3.0
+bun add github:AOMC-Server/block-ui#v0.3.1
 bun add preact @preact/signals   # the peers, if the app does not have them yet
 ```
 
@@ -84,10 +84,47 @@ jsxImportSource = "preact"
 (`/width`, `/reorder`, `/markdown`, `/menu`, `/format`, `/csv`, `/errors`, `/hooks`, `/theme`).
 
 **`file:` installs** (`"@aomc-server/block-ui": "file:../block-ui"`, the sibling checkout used while both apps and the
-library change together) are _copies_ made by `bun install`, not links: after editing the library run `bun install`
-again in each app (in a Bun workspace, at the repository root). The install also adds the library's own
-`devDependencies` (biome, vite, typescript, happy-dom, …) to the app's lockfile; that is expected, and goes away
+library change together) are not links to the directory, but not a real copy either: `bun install` makes
+`node_modules/@aomc-server/block-ui` a tree of directories whose files are _symlinks_ into the checkout. Edits to
+existing files show up at once; after adding, removing or renaming files (or editing `package.json`) run
+`bun install` again in each app (in a Bun workspace, at the repository root). The install also adds the library's
+own `devDependencies` (biome, vite, typescript, happy-dom, …) to the app's lockfile; that is expected, and goes away
 with a registry or `github:` dependency.
+
+Bun resolves symlinks to their real path, so the library's files import `preact` and `@preact/signals` from
+`../block-ui/node_modules`, not from the app: **a second copy of both** under `bun test`. Signals then do not cross the
+boundary (an `effect` in the app does not rerun when a library signal such as `appearance` or `prefersLight` changes).
+Vite has the same problem and `resolve.dedupe` (above) is its fix. For Bun tests load the library's copies from the
+app's; in a preload file (`[test] preload` in `bunfig.toml`), with `ownModules` the app's `node_modules` directory:
+
+```ts
+// test-setup.ts
+import { join } from "node:path";
+import { plugin } from "bun";
+
+const ownModules = join(import.meta.dir, "node_modules");
+const escaped = ownModules.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const foreignPeers = new RegExp(
+	`^(?!${escaped}/).*/node_modules/(preact|@preact/signals(-core)?)/.*\\.m?js$`,
+);
+
+plugin({
+	name: "single-preact",
+	setup(build) {
+		build.onLoad({ filter: foreignPeers }, (args) => {
+			const rel = args.path.replace(/^.*\/node_modules\//, "");
+			return {
+				contents: `export * from ${JSON.stringify(`${ownModules}/${rel}`)};`,
+				loader: "js",
+			};
+		});
+	},
+});
+```
+
+(`onResolve` does not see the library's own imports in Bun, which is why this redirects the loaded files.) Nothing
+of this is needed with a registry or `github:` install, where the library sits inside the app's `node_modules` and
+the peers resolve to the app's copies, nor in a Bun workspace (one hoisted copy).
 
 **Docker.** A `file:` dependency points outside the app's build context. Give the build the sibling checkout as a
 named context and copy it to the same relative place the lockfile expects:
