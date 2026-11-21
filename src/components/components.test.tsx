@@ -494,6 +494,20 @@ describe("Toggle", () => {
 		expect(q<HTMLInputElement>("input").checked).toBe(true);
 	});
 
+	test("bold only applies to inline toggles", () => {
+		mount(
+			<>
+				<Toggle checked inline bold label="a" onChange={() => {}} />
+				<Toggle checked inline label="b" onChange={() => {}} />
+				<Toggle checked bold label="c" onChange={() => {}} />
+			</>,
+		);
+		const [a, b, c] = [...document.querySelectorAll("label")];
+		expect(a?.classList.contains("bold")).toBe(true);
+		expect(b?.classList.contains("bold")).toBe(false);
+		expect(c?.classList.contains("bold")).toBe(false);
+	});
+
 	test("title is the tooltip of the whole row", () => {
 		mount(
 			<Toggle

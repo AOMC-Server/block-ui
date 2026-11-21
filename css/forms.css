@@ -315,9 +315,13 @@ input.switch:disabled {
 	font-weight: 600;
 }
 
-/* The text of an inline switch is body text; only a settings row makes its label bold. */
+/* The text of an inline switch is body text (`.bold` for list-like rows); only a settings row's label is bold. */
 .check > .toggle-text {
 	font-weight: inherit;
+}
+
+.check.bold > .toggle-text {
+	font-weight: 600;
 }
 
 .toggle .hint {

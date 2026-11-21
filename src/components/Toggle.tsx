@@ -3,7 +3,7 @@ import type { ComponentChildren } from "preact";
 /**
  * A checkbox drawn as a slide toggle (`input.switch`). By default a settings row: the label and
  * its hint on the left, the switch on the right. `inline` puts the switch before the label, in
- * the text's own weight, with no card around it. Call initToggleDrag() once to let the knob be
+ * the text's own weight (`bold` for a list of them), with no card around it. Call initToggleDrag() once to let the knob be
  * dragged.
  */
 export function Toggle(props: {
@@ -13,6 +13,8 @@ export function Toggle(props: {
 	hint?: ComponentChildren;
 	disabled?: boolean;
 	inline?: boolean;
+	/** With `inline`: the label in bold, for a list of switches (a settings row's is always bold). */
+	bold?: boolean;
 	/** Extra classes on the label (`danger` for a red row). */
 	class?: string;
 	/** Accessible name when there is no label. */
@@ -22,7 +24,7 @@ export function Toggle(props: {
 }) {
 	return (
 		<label
-			class={`${props.inline ? "check" : "toggle"} ${props.disabled ? "disabled" : ""} ${props.class ?? ""}`}
+			class={`${props.inline ? "check" : "toggle"} ${props.inline && props.bold ? "bold" : ""} ${props.disabled ? "disabled" : ""} ${props.class ?? ""}`}
 			title={props.title}
 		>
 			<input
