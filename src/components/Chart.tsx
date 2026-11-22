@@ -18,7 +18,8 @@ const PLOT_H = H - PAD.top - PAD.bottom;
 function niceMax(max: number): number {
 	if (max <= 0) return 1;
 	const pow = 10 ** Math.floor(Math.log10(max));
-	for (const step of [1, 2, 2.5, 5, 10])
+	// Steps whose quarters are tidy numbers, as the axis has ticks at 0, 1/4, 1/2, 3/4 and the top.
+	for (const step of [1, 1.2, 1.6, 2, 2.4, 2.8, 3.2, 4, 4.8, 6, 8, 10])
 		if (step * pow >= max) return step * pow;
 	return 10 * pow;
 }
