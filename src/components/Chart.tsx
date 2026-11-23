@@ -32,6 +32,61 @@ function tickIndices(n: number, count: number): number[] {
 	);
 }
 
+/** Indices nearest to `count` evenly spaced moments, for points spread unevenly in time. */
+function timeTickIndices(xs: number[], count: number): number[] {
+	const first = xs[0] as number;
+	const span = (xs[xs.length - 1] as number) - first;
+	const out: number[] = [];
+	for (let t = 0; t < count; t++) {
+		const target = first + (span * t) / (count - 1);
+		let best = 0;
+		for (let i = 1; i < xs.length; i++)
+			if (
+				Math.abs((xs[i] as number) - target) <
+				Math.abs((xs[best] as number) - target)
+			)
+				best = i;
+		if (out[out.length - 1] !== best) out.push(best);
+	}
+	return out;
+}
+
+/** Rough width of an x-axis label in viewBox units (11px sans-serif). */
+const labelWidth = (text: string) => text.length * 6.2;
+const LABEL_GAP = 10;
+
+type XTick = { i: number; x: number; text: string; anchor: string };
+
+/**
+ * The ticks whose labels do not overlap: the first stays, then the last, and a middle one is
+ * dropped when it would touch a neighbour.
+ */
+function spreadTicks(ticks: XTick[]): XTick[] {
+	const extent = (t: XTick) => {
+		const w = labelWidth(t.text);
+		return t.anchor === "start"
+			? [t.x, t.x + w]
+			: t.anchor === "end"
+				? [t.x - w, t.x]
+				: [t.x - w / 2, t.x + w / 2];
+	};
+	const fits = (a: XTick, b: XTick) =>
+		(extent(a)[1] as number) + LABEL_GAP <= (extent(b)[0] as number);
+	const out: XTick[] = [];
+	for (const t of ticks) {
+		const prev = out[out.length - 1];
+		if (!prev || fits(prev, t)) out.push(t);
+	}
+	const last = ticks[ticks.length - 1];
+	if (last && out[out.length - 1] !== last) {
+		while (out.length > 1 && !fits(out[out.length - 1] as XTick, last))
+			out.pop();
+		if (out.length === 0 || fits(out[out.length - 1] as XTick, last))
+			out.push(last);
+	}
+	return out;
+}
+
 /**
  * A small chart: `steps` draws lines that hold their value between points (for readings taken
  * at moments), `bars` draws stacked bars, one per equally long period.
@@ -81,6 +136,19 @@ export function Chart(props: {
 		setHover(best);
 	};
 
+	// Steps sit at their moment in time, so their ticks are spread by time rather than by index.
+	const xTicks = spreadTicks(
+		(kind === "steps" && span > 0
+			? timeTickIndices(xs, 5)
+			: tickIndices(n, 5)
+		).map((i) => ({
+			i,
+			x: x(i),
+			text: formatX(xs[i] as number),
+			anchor:
+				i === 0 && n > 1 ? "start" : i === n - 1 && n > 1 ? "end" : "middle",
+		})),
+	);
 	const barW = Math.max(1, (PLOT_W / n) * 0.78);
 	const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * top);
 	const hoverNote = hover === null ? null : (props.note?.(hover) ?? null);
@@ -116,21 +184,15 @@ export function Chart(props: {
 							</text>
 						</g>
 					))}
-					{tickIndices(n, 5).map((i) => (
+					{xTicks.map((t) => (
 						<text
-							key={i}
+							key={t.i}
 							class="chart-label"
-							x={x(i)}
+							x={t.x}
 							y={H - 6}
-							text-anchor={
-								i === 0 && n > 1
-									? "start"
-									: i === n - 1 && n > 1
-										? "end"
-										: "middle"
-							}
+							text-anchor={t.anchor}
 						>
-							{formatX(xs[i] as number)}
+							{t.text}
 						</text>
 					))}
 

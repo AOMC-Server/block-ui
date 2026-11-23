@@ -9,6 +9,7 @@ import { Async, Empty, ErrorBox, Loading } from "./Async";
 import { Avatar } from "./Avatar";
 import { Badge, Count } from "./Badge";
 import { Card, Tile, TileGrid } from "./Card";
+import { Chart } from "./Chart";
 import { ConnectionBadge } from "./ConnectionBadge";
 import { Dot } from "./Dot";
 import { Field } from "./Field";
@@ -990,6 +991,39 @@ describe("Field", () => {
 		expect(b?.classList.contains("flow")).toBe(true);
 		expect(a?.querySelector(".label")?.textContent).toBe("A");
 		expect(a?.querySelector(".hint")?.textContent).toBe("why");
+	});
+});
+
+describe("Chart", () => {
+	const labels = () =>
+		[...document.querySelectorAll(".chart-label")]
+			.map((t) => t.textContent)
+			.filter((t) => t?.startsWith("d"));
+
+	test("steps spread their x ticks by time, and close readings share one label", () => {
+		// Readings at days 0 and 100, then four in the last hour.
+		const day = 86_400_000;
+		const xs = [
+			0,
+			100 * day,
+			200 * day,
+			400 * day - 3,
+			400 * day - 2,
+			400 * day - 1,
+			400 * day,
+		];
+		mount(
+			<Chart
+				kind="steps"
+				xs={xs}
+				series={[
+					{ key: "a", label: "A", color: "red", values: xs.map(() => 1) },
+				]}
+				formatY={String}
+				formatX={(t) => `d${Math.round(t / day)}`}
+			/>,
+		);
+		expect(labels()).toEqual(["d0", "d100", "d200", "d400"]);
 	});
 });
 
