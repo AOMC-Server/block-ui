@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 export type ChartSeries = {
 	key: string;
@@ -8,10 +8,10 @@ export type ChartSeries = {
 	values: number[];
 };
 
-const W = 640;
+/** Width until the chart has been measured; the drawing is then as wide as the chart, in pixels. */
+const DEFAULT_W = 640;
 const H = 240;
-const PAD = { left: 62, right: 12, top: 10, bottom: 26 };
-const PLOT_W = W - PAD.left - PAD.right;
+const PAD = { right: 12, top: 10, bottom: 28 };
 const PLOT_H = H - PAD.top - PAD.bottom;
 
 /** A round number at or above `max`, so the axis ends on a clean value. */
@@ -51,8 +51,8 @@ function timeTickIndices(xs: number[], count: number): number[] {
 	return out;
 }
 
-/** Rough width of an x-axis label in viewBox units (11px sans-serif). */
-const labelWidth = (text: string) => text.length * 6.2;
+/** Rough width of an axis label in pixels (13px sans-serif, as `.chart-label`). */
+const labelWidth = (text: string) => text.length * 7.2;
 const LABEL_GAP = 10;
 
 type XTick = { i: number; x: number; text: string; anchor: string };
@@ -106,6 +106,19 @@ export function Chart(props: {
 }) {
 	const { kind, xs, series, formatY, formatX } = props;
 	const [hover, setHover] = useState<number | null>(null);
+	const boxRef = useRef<HTMLDivElement>(null);
+	const [W, setW] = useState(DEFAULT_W);
+	useEffect(() => {
+		const el = boxRef.current;
+		if (!el || typeof ResizeObserver === "undefined") return;
+		const measure = () => {
+			if (el.clientWidth > 0) setW(el.clientWidth);
+		};
+		measure();
+		const ro = new ResizeObserver(measure);
+		ro.observe(el);
+		return () => ro.disconnect();
+	}, []);
 	const n = xs.length;
 	if (n === 0) return <p class="muted">No data yet.</p>;
 
@@ -117,14 +130,17 @@ export function Chart(props: {
 		}, 0),
 	);
 	const top = niceMax(totals.reduce((max, t) => Math.max(max, t), 0));
+	const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * top);
+	const left = Math.max(...yTicks.map((v) => labelWidth(formatY(v)))) + 12;
+	const PLOT_W = Math.max(1, W - left - PAD.right);
 	const y = (v: number) => PAD.top + PLOT_H * (1 - v / top);
 
 	const first = xs[0] as number;
 	const span = (xs[n - 1] as number) - first;
 	const x = (i: number) =>
 		kind === "bars"
-			? PAD.left + (PLOT_W * (i + 0.5)) / n
-			: PAD.left +
+			? left + (PLOT_W * (i + 0.5)) / n
+			: left +
 				(span > 0 ? (PLOT_W * ((xs[i] as number) - first)) / span : PLOT_W / 2);
 
 	const pick = (e: PointerEvent) => {
@@ -150,13 +166,12 @@ export function Chart(props: {
 		})),
 	);
 	const barW = Math.max(1, (PLOT_W / n) * 0.78);
-	const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * top);
 	const hoverNote = hover === null ? null : (props.note?.(hover) ?? null);
 	const hoverX = hover === null ? 0 : x(hover);
 
 	return (
 		<div class="chart">
-			<div class="chart-box">
+			<div class="chart-box" ref={boxRef}>
 				<svg
 					viewBox={`0 0 ${W} ${H}`}
 					class="chart-svg"
@@ -169,14 +184,14 @@ export function Chart(props: {
 						<g key={v}>
 							<line
 								class="chart-grid"
-								x1={PAD.left}
+								x1={left}
 								x2={W - PAD.right}
 								y1={y(v)}
 								y2={y(v)}
 							/>
 							<text
 								class="chart-label"
-								x={PAD.left - 6}
+								x={left - 6}
 								y={y(v) + 4}
 								text-anchor="end"
 							>
@@ -227,7 +242,7 @@ export function Chart(props: {
 								let d = `M${pts[0]?.[0]} ${pts[0]?.[1]}`;
 								for (let i = 1; i < pts.length; i++)
 									d += ` H${pts[i]?.[0]} V${pts[i]?.[1]}`;
-								if (n === 1) d += ` H${PAD.left + PLOT_W}`;
+								if (n === 1) d += ` H${left + PLOT_W}`;
 								return (
 									<path
 										key={s.key}

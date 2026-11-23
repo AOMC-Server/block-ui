@@ -218,7 +218,7 @@ img.avatar {
 }
 
 .chart-label {
-	font: 11px var(--sans);
+	font: 13px var(--sans);
 	fill: var(--muted);
 }
 
