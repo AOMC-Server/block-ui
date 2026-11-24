@@ -1053,6 +1053,28 @@ describe("Chart", () => {
 		expect(Math.max(...fitted)).toBeGreaterThanOrEqual(6130);
 		expect(Math.max(...fitted)).toBeLessThan(6300);
 	});
+
+	test("fit gives data that does not change an axis whose ticks differ", () => {
+		document.body.innerHTML = "";
+		mount(
+			<Chart
+				kind="steps"
+				xs={[0, 1, 2]}
+				fit
+				series={[
+					{ key: "a", label: "A", color: "red", values: [730, 730, 730] },
+				]}
+				formatY={(v) => `y${v}`}
+				formatX={String}
+			/>,
+		);
+		const ticks = [...document.querySelectorAll(".chart-label")]
+			.map((t) => t.textContent ?? "")
+			.filter((t) => t.startsWith("y"));
+		expect(new Set(ticks).size).toBe(ticks.length);
+		expect(Number(ticks[0]?.slice(1))).toBeLessThanOrEqual(730);
+		expect(Number(ticks.at(-1)?.slice(1))).toBeGreaterThan(730);
+	});
 });
 
 describe("TileGrid", () => {

@@ -27,15 +27,17 @@ function niceMax(max: number): number {
 /**
  * The value axis for data between `min` and `max`: it starts at `min` rounded down to a tick, and
  * is a round number long, so the ticks are tidy and the data fills the height. A `min` of 0 gives
- * the axis from 0 to `niceMax(max)`.
+ * the axis from 0 to `niceMax(max)`. Data that hardly changes still gets an axis of at least 2%
+ * of `max`, rather than one so short that its ticks read the same.
  */
 function yAxis(max: number, min: number): { low: number; span: number } {
 	if (min <= 0) return { low: 0, span: niceMax(max) };
-	let span = niceMax(max - min);
+	const long = (from: number) => niceMax(Math.max(max - from, max * 0.02));
+	let span = long(min);
 	let low = Math.floor(min / (span / 4)) * (span / 4);
 	// Rounding the bottom down can leave the top out of reach: use the next longer axis.
 	while (low + span < max) {
-		span = niceMax(max - low);
+		span = long(low);
 		low = Math.floor(min / (span / 4)) * (span / 4);
 	}
 	return { low, span };
