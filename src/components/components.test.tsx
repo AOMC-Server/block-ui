@@ -1025,6 +1025,34 @@ describe("Chart", () => {
 		);
 		expect(labels()).toEqual(["d0", "d100", "d200", "d400"]);
 	});
+
+	test("fit starts the value axis near the lowest value, and still reaches the highest", () => {
+		const values = [6020, 6050, 6130];
+		const yLabels = (fit: boolean) => {
+			document.body.innerHTML = "";
+			mount(
+				<Chart
+					kind="steps"
+					xs={[0, 1, 2]}
+					fit={fit}
+					series={[{ key: "a", label: "A", color: "red", values }]}
+					formatY={(v) => `y${v}`}
+					formatX={String}
+				/>,
+			);
+			return [...document.querySelectorAll(".chart-label")]
+				.map((t) => t.textContent ?? "")
+				.filter((t) => t.startsWith("y"))
+				.map((t) => Number(t.slice(1)));
+		};
+		const plain = yLabels(false);
+		expect(Math.min(...plain)).toBe(0);
+		const fitted = yLabels(true);
+		expect(Math.min(...fitted)).toBeGreaterThan(5900);
+		expect(Math.min(...fitted)).toBeLessThanOrEqual(6020);
+		expect(Math.max(...fitted)).toBeGreaterThanOrEqual(6130);
+		expect(Math.max(...fitted)).toBeLessThan(6300);
+	});
 });
 
 describe("TileGrid", () => {

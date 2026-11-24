@@ -24,6 +24,23 @@ function niceMax(max: number): number {
 	return 10 * pow;
 }
 
+/**
+ * The value axis for data between `min` and `max`: it starts at `min` rounded down to a tick, and
+ * is a round number long, so the ticks are tidy and the data fills the height. A `min` of 0 gives
+ * the axis from 0 to `niceMax(max)`.
+ */
+function yAxis(max: number, min: number): { low: number; span: number } {
+	if (min <= 0) return { low: 0, span: niceMax(max) };
+	let span = niceMax(max - min);
+	let low = Math.floor(min / (span / 4)) * (span / 4);
+	// Rounding the bottom down can leave the top out of reach: use the next longer axis.
+	while (low + span < max) {
+		span = niceMax(max - low);
+		low = Math.floor(min / (span / 4)) * (span / 4);
+	}
+	return { low, span };
+}
+
 /** Evenly spaced indices into a list of `n`, at most `count` of them. */
 function tickIndices(n: number, count: number): number[] {
 	if (n <= count) return Array.from({ length: n }, (_, i) => i);
@@ -103,6 +120,8 @@ export function Chart(props: {
 	note?: (index: number) => string | null;
 	/** Accessible name of the chart (what it shows). Default "Chart". */
 	ariaLabel?: string;
+	/** For `steps`: start the value axis near the lowest value instead of at 0, so the lines fill the height. */
+	fit?: boolean;
 }) {
 	const { kind, xs, series, formatY, formatX } = props;
 	const [hover, setHover] = useState<number | null>(null);
@@ -129,11 +148,16 @@ export function Chart(props: {
 			return stacked ? acc + v : Math.max(acc, v);
 		}, 0),
 	);
-	const top = niceMax(totals.reduce((max, t) => Math.max(max, t), 0));
-	const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * top);
+	const { low, span: yRange } = yAxis(
+		totals.reduce((max, t) => Math.max(max, t), 0),
+		props.fit && !stacked
+			? Math.min(...series.flatMap((s) => xs.map((_, i) => s.values[i] ?? 0)))
+			: 0,
+	);
+	const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => low + f * yRange);
 	const left = Math.max(...yTicks.map((v) => labelWidth(formatY(v)))) + 12;
 	const PLOT_W = Math.max(1, W - left - PAD.right);
-	const y = (v: number) => PAD.top + PLOT_H * (1 - v / top);
+	const y = (v: number) => PAD.top + PLOT_H * (1 - (v - low) / yRange);
 
 	const first = xs[0] as number;
 	const span = (xs[n - 1] as number) - first;
